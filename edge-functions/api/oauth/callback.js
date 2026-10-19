@@ -133,9 +133,11 @@ export async function onRequestGet(context) {
 
   /* ---------- 成功：品牌化过渡页 + postMessage 交给 CMS ---------- */
   var token = String(tokenData.access_token).replace(/[^A-Za-z0-9_.\-]/g, "");
+  /* Sveltia/Decap 期望的消息体是 JSON：authorization:github:success:{"token":...,"provider":...} */
+  var okPayload = JSON.stringify({ token: token, provider: "github" });
   var okScript =
     "(function(){" +
-    "  var msg='authorization:github:success:" + token + "';" +
+    "  var msg='authorization:github:success:" + okPayload + "';" +
     "  function done(){setTimeout(function(){window.close()},800)}" +
     "  try{" +
     "    if(window.opener){window.opener.postMessage(msg,'*');done();return}" +

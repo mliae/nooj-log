@@ -17,7 +17,8 @@ export function onRequestGet(context) {
 
   var script =
     "(function(){" +
-    "  var msg='authorization:github:success:" + token + "';" +
+    "  var payload='" + JSON.stringify({ token: token, provider: "github" }) + "';" +
+    "  var msg='authorization:github:success:'+payload;" +
     "  try{" +
     "    if(window.opener){window.opener.postMessage(msg,'*');setTimeout(function(){window.close()},800);return}" +
     "  }catch(e){}" +
