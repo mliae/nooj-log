@@ -39,7 +39,14 @@ if (existsSync(postsDir)) {
       /* 兼容两种写法：整篇对象，或被 { posts: [...] } 包裹 */
       const items = Array.isArray(p) ? p : p.posts ? p.posts : [p];
       items.forEach((it) => {
-        if (it && it.id) posts.push(it);
+        if (!it || !it.id) return;
+        /* 草稿只存在于后台，不进入任何公开产物 */
+        if (it.draft) return;
+        /* md 是后台的编辑源（写作页读取），前台只需要渲染好的 content，
+           故此处剥离，避免公开产物白白多出一份正文。 */
+        const pub = { ...it };
+        delete pub.md;
+        posts.push(pub);
       });
     } catch (e) {
       console.error("skip invalid post file: %s (%s)", f, e.message);

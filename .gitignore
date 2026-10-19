@@ -20,3 +20,5 @@ desktop.ini
 .edgeone/*
 .tef_dist/*
   
+# 后台本地回归截图与脚本
+.tmp-shots/

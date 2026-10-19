@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>内容管理 （经典） — Nooj Log</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#FAF9F5">
+  <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+  <link rel="cms-config-url" href="../config.yml">
+  <link rel="stylesheet" href="../../assets/css/tokens.css">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../nooj-brand.css">
+  <script>
+    /* 主题初始化：后台跟随前台读者的同一套主题记忆 */
+    (function () {
+      try {
+        var t = localStorage.getItem("nooj-theme");
+        if (!t) t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", t);
+        document.documentElement.classList.add("js");
+      } catch (e) {}
+    })();
+  </script>
+  <style>
+    /* ---------- 启动加载态：CMS 资源就绪前的品牌过渡 ---------- */
+    #boot {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--s4);
+      background: var(--bg);
+      transition: opacity var(--dur-base) var(--ease-out);
+    }
+    #boot.done { opacity: 0; pointer-events: none; }
+    #boot .boot-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--accent);
+      display: grid;
+      place-items: center;
+    }
+    #boot .boot-mark svg { width: 28px; height: 28px; }
+    #boot .boot-title {
+      font-family: var(--font-display, Georgia, serif);
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    #boot .boot-sub {
+      font-family: var(--font-mono, monospace);
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    #boot .boot-dots { display: flex; gap: 6px; }
+    #boot .boot-dots i {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent);
+      animation: bootPulse 1.2s var(--ease-out, ease-out) infinite;
+    }
+    #boot .boot-dots i:nth-child(2) { animation-delay: 0.15s; }
+    #boot .boot-dots i:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes bootPulse {
+      0%, 100% { opacity: 0.25; transform: translateY(0); }
+      50% { opacity: 1; transform: translateY(-4px); }
+    }
+    #boot-fail {
+      display: none;
+      max-width: 520px;
+      text-align: center;
+      padding: var(--s4);
+      color: var(--muted);
+      font-size: 0.875rem;
+      line-height: 1.7;
+    }
+    #boot-fail code {
+      font-family: var(--font-mono, monospace);
+      font-size: 0.8125rem;
+      color: var(--ink);
+    }
+  </style>
+</head>
+<body>
+  <!-- 品牌启动层 -->
+  <div id="boot">
+    <div class="boot-mark" aria-hidden="true">
+      <svg viewBox="0 0 28 28">
+        <path d="M8 19.5 L14 8.5 L20 19.5" fill="none" stroke="var(--bg)" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2.6 3.4"/>
+        <circle cx="8" cy="19.5" r="2.1" fill="var(--bg)"/>
+        <circle cx="14" cy="8.5" r="2.1" fill="var(--bg)"/>
+        <circle cx="20" cy="19.5" r="2.1" fill="var(--bg)"/>
+      </svg>
+    </div>
+    <p class="boot-title">Nooj Log</p>
+    <p class="boot-sub">LOADING CMS…</p>
+    <div class="boot-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div id="boot-fail">
+      <p>CMS 资源加载失败。</p>
+      <p class="sub">请检查网络连接后刷新；若持续失败，可暂时通过本地编辑 <code>content/*.json</code> 更新内容（见 README「内容更新与发布流程」）。</p>
+    </div>
+  </div>
+
+  <!-- Sveltia CMS：优先本地自托管（国内访问稳定），失败回退公共 CDN -->
+  <script src="../../assets/vendor/sveltia-cms.js"></script>
+  <script>
+    (function () {
+      var cdns = [
+        "https://cdn.jsdelivr.net/npm/@sveltia/cms/dist/sveltia-cms.js",
+        "https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js"
+      ];
+      var i = 0;
+      function tryNext() {
+        if (i >= cdns.length) {
+          /* 全部失败：保留品牌化失败提示，不裸奔到浏览器报错 */
+          document.querySelector("#boot .boot-dots").style.display = "none";
+          document.querySelector("#boot .boot-sub").textContent = "CMS LOAD FAILED";
+          document.getElementById("boot-fail").style.display = "block";
+          return;
+        }
+        var s = document.createElement("script");
+        s.src = cdns[i++];
+        s.onerror = tryNext;
+        document.head.appendChild(s);
+      }
+      /* 本地脚本加载失败（文件缺失/传输中断）时走 CDN */
+      window.addEventListener("load", function () {
+        if (!window.CMS) {
+          tryNext();
+          return;
+        }
+        /* CMS 注册完成：等它的界面根节点（.sui / .app-shell）出现即隐藏启动层 */
+        var boot = document.getElementById("boot");
+        var hide = function () {
+          if (!boot) return;
+          boot.classList.add("done");
+          setTimeout(function () { if (boot.parentNode) boot.remove(); }, 400);
+        };
+        var tryHide = function () {
+          if (document.querySelector(".app-shell, .sui")) hide();
+        };
+        if ("MutationObserver" in window) {
+          var mo = new MutationObserver(tryHide);
+          mo.observe(document.body, { childList: true, subtree: true });
+        }
+        tryHide();
+        /* 兜底：无论如何 8 秒后隐藏，绝不永久遮挡 CMS */
+        setTimeout(hide, 8000);
+      });
+    })();
+  </script>
+</body>
+</html>
