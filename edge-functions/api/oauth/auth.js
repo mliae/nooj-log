@@ -55,12 +55,15 @@ export function onRequestGet(context) {
   }
 
   /* 2) 凭据检查（缺配置时给出可读错误，而非裸 500） */
-  var clientId = env && env.GITHUB_CLIENT_ID;
-  if (!clientId || !env.GITHUB_CLIENT_SECRET) {
+  env = env || {};
+  var clientId = env.GITHUB_CLIENT_ID;
+  var clientSecret = env.GITHUB_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
     return new Response(
-      "OAuth proxy not configured: set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET " +
-      "as environment variables of this Pages project (edgeone pages env add …).",
-      { status: 500 }
+      "OAuth proxy not configured: GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET missing " +
+      "(env keys visible: " + Object.keys(env).join(",") + "). " +
+      "Set them as environment variables of this Pages project (production env).",
+      { status: 500, headers: { "Content-Type": "text/plain; charset=utf-8" } }
     );
   }
 
@@ -77,8 +80,7 @@ export function onRequestGet(context) {
        scope 说明：公开仓库用 public_repo 即可；私有仓库必须用 repo。
        与 GitHub OAuth App 注册的 Authorization callback URL 保持一致。 */
   var redirectUri = origin + "/api/oauth/callback";
-  var scope = (env.OAUTH_SCOPE || "repo").trim();
-  var authorize =
+  var scope = (env.OAUTH_SCOPE || "repo").trim();  var authorize =
     "https://github.com/login/oauth/authorize" +
     "?client_id=" + encodeURIComponent(clientId) +
     "&redirect_uri=" + encodeURIComponent(redirectUri) +

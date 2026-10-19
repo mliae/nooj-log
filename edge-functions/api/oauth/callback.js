@@ -95,6 +95,7 @@ export async function onRequestGet(context) {
   }
 
   /* ---------- 换取 access_token ---------- */
+  env = env || {};
   var clientId = env.GITHUB_CLIENT_ID;
   var clientSecret = env.GITHUB_CLIENT_SECRET;
   var redirectUri = origin + "/api/oauth/callback";
