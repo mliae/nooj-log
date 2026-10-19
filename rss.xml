@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Nooj Log</title>
+    <link>https://nooj.cn/</link>
+    <description>代码与生活，皆有迹可循。记录开发踩坑、项目实践，以及日常里所有折腾与细碎生活。</description>
+    <language>zh-CN</language>
+    <atom:link href="https://nooj.cn/rss.xml" rel="self" type="application/rss+xml"/>
+    <item>
+      <title>记一次由 Docker 时区引发的「幽灵 Bug」</title>
+      <link>https://nooj.cn/post.html?id=docker-timezone-ghost-bug</link>
+      <guid isPermaLink="true">https://nooj.cn/post.html?id=docker-timezone-ghost-bug</guid>
+      <pubDate>Mon, 12 Oct 2026 09:00:00 +0800</pubDate>
+      <category>开发折腾</category>
+      <description>定时任务在本地跑得好好的，一进容器就迟到八小时。排查到最后，发现问题不在代码，而在 /etc/localtime。</description>
+    </item>
+    <item>
+      <title>从零搭建 Nooj Log：一个极简静态博客的诞生</title>
+      <link>https://nooj.cn/post.html?id=nooj-log-static-blog</link>
+      <guid isPermaLink="true">https://nooj.cn/post.html?id=nooj-log-static-blog</guid>
+      <pubDate>Mon, 05 Oct 2026 09:00:00 +0800</pubDate>
+      <category>项目展示</category>
+      <description>为什么最终没有选任何框架——以及这个用 HTML + CSS + 一点点 JS 手写出来的博客，是如何兼顾清爽与体感的。</description>
+    </item>
+    <item>
+      <title>CSS 容器查询实战：让卡片布局真正「响应式」</title>
+      <link>https://nooj.cn/post.html?id=css-container-queries</link>
+      <guid isPermaLink="true">https://nooj.cn/post.html?id=css-container-queries</guid>
+      <pubDate>Sat, 26 Sep 2026 09:00:00 +0800</pubDate>
+      <category>开发折腾</category>
+      <description>媒体查询关心的是视口，而组件关心的是自己的容器。一次文章卡片的布局改造，记录 container query 的正确用法。</description>
+    </item>
+    <item>
+      <title>cli-todo：300 行代码的终端待办工具</title>
+      <link>https://nooj.cn/post.html?id=cli-todo</link>
+      <guid isPermaLink="true">https://nooj.cn/post.html?id=cli-todo</guid>
+      <pubDate>Fri, 18 Sep 2026 09:00:00 +0800</pubDate>
+      <category>项目展示</category>
+      <description>受够了图形待办软件的启动速度，用 Node.js 写了一个住在终端里的待办工具。</description>
+    </item>
+    <item>
+      <title>周末骑行 40 公里，和一杯好喝的手冲</title>
+      <link>https://nooj.cn/post.html?id=weekend-cycling</link>
+      <guid isPermaLink="true">https://nooj.cn/post.html?id=weekend-cycling</guid>
+      <pubDate>Sun, 13 Sep 2026 09:00:00 +0800</pubDate>
+      <category>生活日常</category>
+      <description>早起、沿江、逆风、回程顺风；以及回家后那杯参数刚刚好的手冲。</description>
+    </item>
+    <item>
+      <title>给博客加上深色模式的那个晚上</title>
+      <link>https://nooj.cn/post.html?id=dark-mode-night</link>
+      <guid isPermaLink="true">https://nooj.cn/post.html?id=dark-mode-night</guid>
+      <pubDate>Sun, 30 Aug 2026 09:00:00 +0800</pubDate>
+      <category>开发折腾</category>
+      <description>从 prefers-color-scheme 到手动切换，从 CSS 变量重构到消灭首屏闪白——一次完整的主题切换实践。</description>
+    </item>
+    <item>
+      <title>搬家后的第一顿饭</title>
+      <link>https://nooj.cn/post.html?id=first-meal-after-moving</link>
+      <guid isPermaLink="true">https://nooj.cn/post.html?id=first-meal-after-moving</guid>
+      <pubDate>Sun, 16 Aug 2026 09:00:00 +0800</pubDate>
+      <category>生活日常</category>
+      <description>新厨房的第一餐是一碗番茄鸡蛋面。窗外有夕阳，锅里有热气，这就够了。</description>
+    </item>
+  </channel>
+</rss>

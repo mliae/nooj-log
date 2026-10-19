@@ -1,0 +1,24 @@
+{
+  "site": {
+    "name": "Nooj Log",
+    "slogan": "代码与生活，皆有迹可循",
+    "domain": "nooj.cn",
+    "author": {
+      "name": "Nooj",
+      "bio": "开发者，喜欢终端、衬线字体和刚刚好参数的咖啡。",
+      "email": "hi@nooj.cn",
+      "github": "https://github.com/nooj-blog"
+    },
+    "social": [
+      { "label": "GitHub", "url": "https://github.com/nooj-blog" },
+      { "label": "Email", "url": "mailto:hi@nooj.cn" }
+    ],
+    "giscus": {
+      "repo": "",
+      "repoId": "",
+      "category": "Announcements",
+      "categoryId": "",
+      "mapping": "pathname"
+    }
+  }
+}

@@ -1,0 +1,60 @@
+/* ============================================================
+   Nooj Log — 后台品牌样式注入
+   Sveltia CMS 官方支持：在加载 sveltia-cms.js 的页面加样式表，
+   覆盖其 CSS 自定义属性（变量名可能随版本变化，失效不影响功能）。
+   目标：后台与前台保持「视觉血缘」——同样的纸白/墨绿/衬线/等宽。
+   ============================================================ */
+
+:root {
+  /* 字体族：前台是什么，后台就是什么 */
+  --font-family--default: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-family--serif: Georgia, "Songti SC", "Noto Serif SC", serif;
+  --font-family--monospace: "JetBrains Mono", "SF Mono", Consolas, "Courier New", monospace;
+}
+
+/* 主题色板：与前台 tokens.css 同源 */
+:root,
+[data-theme="light"] {
+  --primary-color: #2F6B4F;          /* 墨绿 */
+  --secondary-color: #6B7A5E;
+  --background-color: #FAF9F5;       /* 暖纸白 */
+  --text-color: #26251F;
+  --muted-color: #79766A;
+  --border-color: #E4E0D2;
+  --surface-color: #FFFFFF;
+  --error-color: #C0503F;
+  --success-color: #2F6B4F;
+}
+
+[data-theme="dark"] {
+  --primary-color: #45C08D;
+  --secondary-color: #8FA88A;
+  --background-color: #171613;
+  --text-color: #F0EEE4;
+  --muted-color: #A8A496;
+  --border-color: #37342B;
+  --surface-color: #1F1E1A;
+  --error-color: #E0705C;
+  --success-color: #45C08D;
+}
+
+/* 控件圆角与间距：向纸面气质靠拢 */
+body {
+  --border-radius: 6px;
+}
+
+/* 标题用衬线，正文用黑体，元信息用等宽——与前台排版对位 */
+h1, h2, .sui.toolbar .button, [class*="collection"] header {
+  font-family: var(--font-family--serif);
+}
+
+/* 表格与代码预览区用等宽，保持「开发者工具」气质 */
+code, kbd, samp, pre, .mono {
+  font-family: var(--font-family--monospace);
+}
+
+/* 细节：聚焦环用主色，替代默认蓝 */
+*:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}

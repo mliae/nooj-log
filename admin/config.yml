@@ -1,0 +1,130 @@
+# ============================================================
+# Nooj Log — Sveltia CMS 配置
+# 部署前必改三处：
+#   1) backend.repo        → 你的 GitHub 仓库（owner/name）
+#   2) backend.base_url    → 站点正式域名（OAuth 函数同源部署，填站点域名即可）
+#   3) site_url            → 同 base_url
+# OAuth 端点 /api/oauth/* 由 edge-functions/ 下的 Edge Function 提供，
+# GitHub OAuth App 的回调地址填 https://<你的域名>/api/oauth/callback
+# ============================================================
+
+backend:
+  name: github
+  repo: nooj-blog/nooj-log          # ← 改成你的 owner/repo
+  branch: main
+  base_url: https://nooj.cn         # ← 改成你的站点域名
+  auth_endpoint: /api/oauth/auth    # Edge Function 路由，一般不用改
+
+site_url: https://nooj.cn           # ← 同上
+locale: zh-CN
+
+# 品牌标识：复用站点 favicon（点线「迹」纹样）
+logo:
+  src: /favicon.svg
+  show_in_header: true
+
+# 媒体库：图片进仓库，公开路径与站内路径一致
+media_folder: media/uploads
+public_folder: /media/uploads
+
+collections:
+  # ---------- 文章 ----------
+  - name: posts
+    label: 文章
+    files:
+      - name: posts
+        label: 全部文章
+        file: content/posts.json
+        format: json
+        fields:
+          - label: 文章列表
+            name: posts
+            widget: list
+            summary: "{{fields.title}} · {{fields.date}}"
+            fields:
+              - label: ID
+                name: id
+                widget: string
+                hint: 文章唯一标识，用于网址 post.html?id=xxx；只用小写字母、数字与连字符，发布后尽量不要改
+              - label: 标题
+                name: title
+                widget: string
+              - label: 分类
+                name: cat
+                widget: select
+                default: dev
+                options:
+                  - { label: "开发折腾", value: dev }
+                  - { label: "项目展示", value: project }
+                  - { label: "生活日常", value: life }
+              - label: 发布日期
+                name: date
+                widget: datetime
+                type: date
+                format: YYYY-MM-DD
+                hint: 列表按日期倒序自动排序
+              - label: 阅读时长（分钟）
+                name: read
+                widget: number
+                default: 5
+                value_type: int
+                min: 1
+                max: 120
+              - label: 标签
+                name: tags
+                widget: list
+                default: []
+                hint: 回车添加一个标签，建议 2–4 个
+              - label: 摘要
+                name: excerpt
+                widget: text
+                hint: 列表页与分享链接的摘要，一两句话即可
+              - label: 正文
+                name: content
+                widget: markdown
+                hint: 支持 Markdown 与 HTML 标签混排；代码块用 ``` 包裹并标注语言
+
+  # ---------- 项目 ----------
+  - name: projects
+    label: 项目
+    files:
+      - name: projects
+        label: 全部项目
+        file: content/projects.json
+        format: json
+        fields:
+          - label: 项目列表
+            name: projects
+            widget: list
+            summary: "{{fields.name}} · {{fields.tagline}}"
+            fields:
+              - label: ID
+                name: id
+                widget: string
+                hint: 项目唯一标识，小写字母/数字/连字符
+              - label: 项目名
+                name: name
+                widget: string
+              - label: 一句话介绍
+                name: tagline
+                widget: string
+              - label: 详细介绍
+                name: desc
+                widget: text
+              - label: 技术栈
+                name: tech
+                widget: list
+                default: []
+              - label: 首页精选
+                name: featured
+                widget: boolean
+                default: false
+                hint: 开启后会出现在首页「做给自己用的小工具」区块
+              - label: 源码地址（可选）
+                name: repo
+                widget: string
+                required: false
+              - label: 演示地址（可选）
+                name: demo
+                widget: string
+                required: false

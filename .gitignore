@@ -1,0 +1,22 @@
+# EdgeOne CLI 本地凭据（含账号级 token，绝不提交）
+.edgeone/
+
+# 依赖与日志
+node_modules/
+*.log
+npm-debug.log*
+
+# 系统杂项
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 编辑器
+.vscode/
+.idea/
+
+# Tencent Cloud EdgeOne
+.env
+.edgeone/*
+.tef_dist/*
+  

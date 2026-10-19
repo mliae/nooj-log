@@ -1,0 +1,136 @@
+/* ============================================================
+   Nooj Log — Base
+   重置 / 排版 / 焦点 / 降级动效 / 氛围层
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  /* 粘性头部锚点偏移 */
+  scroll-padding-top: calc(var(--header-h) + var(--s4));
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  line-height: 1.8;
+  letter-spacing: .02em;          /* 中文正文规范 */
+  color: var(--ink-2);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- 氛围层一：全站纸面噪点（极轻） ---- */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---- 标题：衬线展示字 ---- */
+h1, h2, h3, h4 {
+  font-family: var(--font-serif);
+  color: var(--ink);
+  line-height: 1.25;
+  letter-spacing: .01em;
+  margin: 0 0 var(--s3);
+  text-wrap: balance;
+}
+
+h1 { font-size: var(--fs-3xl); font-weight: 700; }
+h2 { font-size: var(--fs-2xl); font-weight: 700; }
+h3 { font-size: var(--fs-xl); font-weight: 700; }
+h4 { font-size: var(--fs-lg); font-weight: 700; }
+
+p { margin: 0 0 var(--s4); text-wrap: pretty; }
+
+a {
+  color: var(--accent-strong);
+  text-decoration: none;
+  transition: color var(--dur-fast) ease-out;
+}
+a:hover { color: var(--accent); }
+
+img { max-width: 100%; display: block; }
+
+ul, ol { margin: 0; padding: 0; list-style: none; }
+
+/* ---- 等宽工具类：元信息统一气质 ---- */
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  letter-spacing: .04em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- 跳转链接（可访问性） ---- */
+.skip-link {
+  position: absolute;
+  left: var(--s4);
+  top: -48px;
+  z-index: 300;
+  padding: var(--s2) var(--s4);
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: var(--radius-sm);
+  transition: top var(--dur-fast) var(--ease-out);
+}
+.skip-link:focus { top: var(--s3); color: var(--bg); }
+
+/* ---- 焦点：全局可见描边 ---- */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+/* ---- 布局工具 ---- */
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: var(--s4);
+}
+
+main { flex: 1 0 auto; }
+
+/* ---- 入场编排：仅 opacity / transform ----
+   仅在 JS 可用时隐藏（html.js 由内联脚本添加），JS 失效时内容直接可见；
+   IO 回调失效时由 main.js 特性检测兜底全部显示 */
+html.js .reveal { opacity: 0; transform: translateY(24px); }
+html.js .reveal.in {
+  opacity: 1;
+  transform: none;
+  transition: opacity var(--dur-base) var(--ease-out),
+              transform var(--dur-base) var(--ease-out);
+}
+html.js .reveal:nth-child(2) { transition-delay: 80ms; }
+html.js .reveal:nth-child(3) { transition-delay: 160ms; }
+html.js .reveal:nth-child(4) { transition-delay: 240ms; }
+
+/* ---- 降级动效 ---- */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .reveal, html.js .reveal { opacity: 1; transform: none; }
+}
