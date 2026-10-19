@@ -65,3 +65,38 @@ python -m http.server 8899
 - **提示域名不允许**：环境变量 `ALLOWED_DOMAINS` 需包含当前访问域名
 - **保存后线上没变**：等约 1 分钟（构建 + CDN 刷新）；`content/*.json` 缓存 60 秒
 - **API 限流**：读走 raw.githubusercontent（CDN、不占配额），写走 API（5000 次/小时），正常写作用不完
+
+## 二期：项目 / 媒体 / 系统设置 / 密码登录
+
+- **项目管理**（`#/projects`）：`content/projects.json` 单文件数组的完整 CRUD，
+  上移/下移即前台展示顺序，「精选」对应前台「进行中」标记；弹窗表单编辑
+- **媒体库**（`#/media`）：仓库 `media/uploads` 与 S3 图床两个来源统一网格，
+  搜索、复制链接、打开、删除；支持拖拽与多选上传，上传后链接自动复制
+- **系统设置**（`#/settings`）：账号与安全、图床、仓库、维护四个分区
+
+### 密码登录（不使用 GitHub）
+
+- 首次启用：GitHub 登录 → 设置 → 账号与安全 → 创建密码（需同时保存一个有
+  Contents 写权限的 Token，服务端 AES-GCM 加密后存 `admin/.pat.json`）
+- 之后在登录页选「密码登录」，服务端校验 `admin/.auth.json` 里的 PBKDF2 哈希，
+  签发 7 天 HttpOnly 会话 Cookie；内容读写全部经 `/api/data` 代理，浏览器不经手 Token
+- 修改密码随时在设置里做；轮换仓库 Token 也在同一页
+
+### 图床（S3 兼容）
+
+- 支持 Cloudflare R2、Backblaze B2、阿里云 OSS（S3 兼容端点）、MinIO 等
+- 配置写入 `admin/storage.json`，Secret 加密落盘（密钥来自服务端环境变量
+  `SESSION_SECRET`，缺省复用 OAuth 的 client secret）；也可完全用环境变量
+  `S3_ENDPOINT / S3_BUCKET / S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY` 接管
+- 上传走预签名 URL 浏览器直传，需要在存储后台为本站域名配置 CORS（允许 PUT/GET/HEAD）
+- 启用后，写作页与媒体库的图片直传对象存储，不再写入 Git 仓库
+
+### 服务端函数
+
+| 路由 | 文件 | 作用 |
+|---|---|---|
+| `POST /api/auth` | `edge-functions/api/auth.js` | 密码登录 / 会话 / 改密 / 令牌管理 |
+| `POST /api/data` | `edge-functions/api/data.js` | 密码登录时代理仓库读写（限 content/ 与 media/）|
+| `POST /api/storage` | `edge-functions/api/storage.js` | 图床配置 + SigV4 预签名 / 列举 / 删除 |
+
+回归脚本：`.tmp-shots/run2.mjs`（二期 UI + 打桩接口）。

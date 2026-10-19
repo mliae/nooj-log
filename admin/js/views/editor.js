@@ -369,7 +369,8 @@ export async function renderEditor(container, ctx, id) {
           for (const f of files) {
             try {
               toast(`正在上传 ${f.name}…`, "info", 1500);
-              const url = await api.uploadMedia(f);
+              const r = await api.uploadMedia(f);
+              const url = r.url;
               const name = f.name.replace(/\.[^.]+$/, "");
               vditor.insertValue(`\n![${name}](${url})\n`);
               markDirty();
