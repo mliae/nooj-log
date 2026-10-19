@@ -81,8 +81,23 @@ collections:
                 hint: 列表页与分享链接的摘要，一两句话即可
               - label: 正文
                 name: content
-                widget: markdown
-                hint: 支持 Markdown 与 HTML 标签混排；代码块用 ``` 包裹并标注语言
+                widget: richtext
+                modes: [rich_text, raw]
+                buttons:
+                  - bold
+                  - italic
+                  - strikethrough
+                  - code
+                  - link
+                  - heading-one
+                  - heading-two
+                  - heading-three
+                  - bulleted-list
+                  - numbered-list
+                  - quote
+                editor_components: [code-block, image, table, hr]
+                minimal: false
+                hint: 默认可视化编辑（所见即所得）；点右上角「源码」可写 Markdown。图片可直接粘贴或拖入，自动上传到 media/uploads
 
   # ---------- 项目 ----------
   - name: projects

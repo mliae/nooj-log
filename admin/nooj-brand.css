@@ -58,3 +58,122 @@ code, kbd, samp, pre, .mono {
   outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
+
+/* ============================================================
+   写作体验增强
+   Sveltia 内部使用 .sui.* 类名（版本升级可能变化，失效仅影响观感）
+   ============================================================ */
+
+/* 1) 编辑区正文：按前台正文规格排版（16px / 1.8），写作不累眼 */
+.sui.text-editor .inner,
+.sui.rich-text .inner,
+[class*="text-editor"] [contenteditable="true"] {
+  font-family: var(--font-family--default);
+  font-size: 1rem;
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+}
+
+/* 编辑区标题用衬线，和前台文章页一致 */
+.sui.text-editor .inner h1,
+.sui.text-editor .inner h2,
+.sui.text-editor .inner h3,
+[class*="text-editor"] [contenteditable="true"] h1,
+[class*="text-editor"] [contenteditable="true"] h2,
+[class*="text-editor"] [contenteditable="true"] h3 {
+  font-family: var(--font-family--serif);
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+  margin-top: 1.6em;
+  margin-bottom: 0.6em;
+}
+
+/* 编辑区内引用块：墨绿左边线，与前台 blockquote 一致 */
+.sui.text-editor .inner blockquote,
+[contenteditable="true"] blockquote {
+  border-left: 3px solid var(--primary-color);
+  padding-left: 1em;
+  color: var(--muted-color);
+  font-style: normal;
+}
+
+/* 编辑区代码块：等宽 + 纸面底色 */
+.sui.text-editor .inner pre,
+[contenteditable="true"] pre {
+  font-family: var(--font-family--monospace);
+  font-size: 0.875rem;
+  line-height: 1.65;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+/* 2) 工具栏：吸顶 + 按钮 hover 用主色，控件更易点中 */
+.sui.toolbar {
+  backdrop-filter: blur(6px);
+}
+.sui.toolbar .button:hover,
+.sui.toolbar button:hover {
+  color: var(--primary-color);
+}
+.sui.toolbar .button {
+  border-radius: 5px;
+}
+
+/* 3) 表单标签与分组：等宽小标签 + 衬线大标题，建立信息层次 */
+.sui.field .label,
+.sui.field label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* 4) 列表条目 hover 反馈（纸面轻微抬起） */
+.sui.list .item,
+[class*="entry-list"] li,
+[class*="collection"] [role="listitem"] {
+  transition: background-color 0.15s ease;
+}
+.sui.list .item:hover,
+[class*="entry-list"] li:hover,
+[class*="collection"] [role="listitem"]:hover {
+  background-color: color-mix(in srgb, var(--primary-color) 5%, transparent);
+}
+
+/* 5) 主按钮：墨绿实心，与站点 CTA 一致 */
+.sui.button.primary,
+button.primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+/* 6) 滚动条：细化，降低视觉噪音 */
+.sui ::-webkit-scrollbar,
+.sui::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.sui ::-webkit-scrollbar-thumb,
+.sui::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted-color) 35%, transparent);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.sui ::-webkit-scrollbar-track,
+.sui::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 7) 暗色模式：编辑区表面略提亮，避免纯黑压字 */
+[data-theme="dark"] .sui.text-editor .inner,
+[data-theme="dark"] [contenteditable="true"] {
+  background-color: var(--surface-color);
+}
+
+/* 8) 移动端：工具栏不换行，横向滚动（避免挤成两行占屏） */
+@media (max-width: 768px) {
+  .sui.toolbar .inner {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+  }
+}
