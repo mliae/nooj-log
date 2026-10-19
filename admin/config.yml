@@ -12,10 +12,10 @@ backend:
   name: github
   repo: nooj-blog/nooj-log          # ← 改成你的 owner/repo
   branch: main
-  base_url: https://nooj.cn         # ← 改成你的站点域名
+  base_url: https://i.ymao.me       # ← 站点域名（nooj.cn 备案通过后改回）
   auth_endpoint: /api/oauth/auth    # Edge Function 路由，一般不用改
 
-site_url: https://nooj.cn           # ← 同上
+site_url: https://i.ymao.me         # ← 同上
 locale: zh-CN
 
 # 品牌标识：复用站点 favicon（点线「迹」纹样）

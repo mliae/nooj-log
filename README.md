@@ -5,8 +5,8 @@
 
 纯静态个人技术博客：零依赖、零构建、零追踪器。托管于 **EdgeOne Pages 免费版**（不限加速流量），配 **Sveltia CMS** 浏览器可视化后台（GitHub OAuth，零服务器）。
 
-- 线上：<https://nooj.cn>
-- 后台：<https://nooj.cn/admin/>（需配置，见下文）
+- 线上：<https://i.ymao.me>
+- 后台：<https://i.ymao.me/admin/>（需配置，见下文）
 - 订阅：`/rss.xml` · 站点地图：`/sitemap.xml`
 
 ---
@@ -113,14 +113,18 @@ edgeone pages deploy -n nooj-log     # 首次创建项目
 部署成功后 CLI 会输出 `EDGEONE_DEPLOY_URL`（含鉴权参数，**必须完整复制**）。
 该链接用于快速验证；国内长期运营请继续阶段 1。
 
-### 阶段 1 · GitHub 仓库 + 自动构建 + 绑定 nooj.cn
+### 阶段 1 · GitHub 仓库 + 自动构建 + 绑定 i.ymao.me
+
+> **域名说明**：`i.ymao.me` 为临时域名（父域名 ymao.me 未备案，加速区域只能选全球 AZ）。
+> `nooj.cn` 备案通过后：域名管理处添加 `nooj.cn` → 加速区域切中国大陆 AZ →
+> 改 `admin/config.yml` 的 `base_url`/`site_url` → 改 GitHub OAuth App 回调 →
+> `edgeone pages env add ALLOWED_DOMAINS nooj.cn,www.nooj.cn` → push 触发重新部署。
 
 1. 把本目录 push 到 GitHub 仓库（如 `nooj-blog/nooj-log`）
 2. EdgeOne 控制台 → Pages → 创建项目 → **连接 Git 仓库** → 选择仓库
    （`edgeone.json` 已预置构建设置，控制台会自动读取）
 3. 构建部署配置保持默认（纯静态，无构建命令）；Node 版本 22.11.0
-4. 项目设置 → 域名管理 → 绑定 `nooj.cn`
-   - **中国大陆节点加速需 ICP 备案**；未备案可先用国际节点或默认域名
+4. 项目设置 → 域名管理 → 绑定 `i.ymao.me`，加速区域选**全球（不含中国大陆）**（免备案）
 5. 之后每次 `git push` 自动构建发布，无需再跑 CLI
 
 ### 阶段 2 · 接入 `/admin` 后台（GitHub OAuth，零服务器）
@@ -129,14 +133,14 @@ edgeone pages deploy -n nooj-log     # 首次创建项目
 
 | 字段 | 值 |
 |---|---|
-| Homepage URL | `https://nooj.cn` |
-| Authorization callback URL | `https://nooj.cn/api/oauth/callback` |
+| Homepage URL | `https://i.ymao.me` |
+| Authorization callback URL | `https://i.ymao.me/api/oauth/callback` |
 
 创建后复制 **Client ID**，点 **Generate a new client secret** 复制 **Secret**。
 
 **b. 修改两处配置**
 
-- `admin/config.yml`：`backend.repo` 改为你的 `owner/repo`；`backend.base_url` 与 `site_url` 改为 `https://nooj.cn`
+- `admin/config.yml`：`backend.repo` 改为你的 `owner/repo`；`backend.base_url` 与 `site_url` 改为 `https://i.ymao.me`
 - 提交并 push（触发一次部署）
 
 **c. 配置函数环境变量**（secret 只进环境变量，绝不写进仓库）
@@ -144,12 +148,12 @@ edgeone pages deploy -n nooj-log     # 首次创建项目
 ```bash
 edgeone pages env add GITHUB_CLIENT_ID       <你的 Client ID>
 edgeone pages env add GITHUB_CLIENT_SECRET   <你的 Client Secret>
-edgeone pages env add ALLOWED_DOMAINS        nooj.cn,www.nooj.cn
+edgeone pages env add ALLOWED_DOMAINS        i.ymao.me,www.i.ymao.me
 # 可选：公开仓库可收紧 scope
 edgeone pages env add OAUTH_SCOPE            public_repo
 ```
 
-**d. 验证**：打开 `https://nooj.cn/admin/` → GitHub 登录 → 应进入后台界面，
+**d. 验证**：打开 `https://i.ymao.me/admin/` → GitHub 登录 → 应进入后台界面，
 能看到「文章 / 项目」两个集合。保存一篇文章，约 1 分钟后线上生效。
 
 > 故障速查：函数 404 → 确认 EdgeOne 控制台函数目录识别的是 `edge-functions`
