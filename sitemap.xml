@@ -1,57 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://nooj.cn/</loc>
-    <lastmod>2026-10-18</lastmod>
+    <loc>https://i.ymao.me/</loc>
+    <lastmod>2026-10-19</lastmod>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://nooj.cn/posts.html</loc>
-    <lastmod>2026-10-18</lastmod>
+    <loc>https://i.ymao.me/posts.html</loc>
+    <lastmod>2026-10-19</lastmod>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://nooj.cn/projects.html</loc>
-    <lastmod>2026-10-18</lastmod>
+    <loc>https://i.ymao.me/projects.html</loc>
+    <lastmod>2026-10-19</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nooj.cn/about.html</loc>
-    <lastmod>2026-10-18</lastmod>
+    <loc>https://i.ymao.me/about.html</loc>
+    <lastmod>2026-10-19</lastmod>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://nooj.cn/post.html?id=docker-timezone-ghost-bug</loc>
+    <loc>https://i.ymao.me/post.html?id=测试文章</loc>
+    <lastmod>2026-10-19</lastmod>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://i.ymao.me/post.html?id=docker-timezone-ghost-bug</loc>
     <lastmod>2026-10-12</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nooj.cn/post.html?id=nooj-log-static-blog</loc>
+    <loc>https://i.ymao.me/post.html?id=nooj-log-static-blog</loc>
     <lastmod>2026-10-05</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nooj.cn/post.html?id=css-container-queries</loc>
+    <loc>https://i.ymao.me/post.html?id=css-container-queries</loc>
     <lastmod>2026-09-26</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nooj.cn/post.html?id=cli-todo</loc>
+    <loc>https://i.ymao.me/post.html?id=cli-todo</loc>
     <lastmod>2026-09-18</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nooj.cn/post.html?id=weekend-cycling</loc>
+    <loc>https://i.ymao.me/post.html?id=weekend-cycling</loc>
     <lastmod>2026-09-13</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nooj.cn/post.html?id=dark-mode-night</loc>
+    <loc>https://i.ymao.me/post.html?id=dark-mode-night</loc>
     <lastmod>2026-08-30</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nooj.cn/post.html?id=first-meal-after-moving</loc>
+    <loc>https://i.ymao.me/post.html?id=first-meal-after-moving</loc>
     <lastmod>2026-08-16</lastmod>
     <priority>0.7</priority>
   </url>

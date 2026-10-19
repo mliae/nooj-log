@@ -1,0 +1,14 @@
+{
+  "id": "css-container-queries",
+  "title": "CSS 容器查询实战：让卡片布局真正「响应式」",
+  "cat": "dev",
+  "date": "2026-09-26",
+  "read": 9,
+  "tags": [
+    "CSS",
+    "前端",
+    "布局"
+  ],
+  "excerpt": "媒体查询关心的是视口，而组件关心的是自己的容器。一次文章卡片的布局改造，记录 container query 的正确用法。",
+  "content": "\n<h2>媒体查询的盲区</h2>\n<p>首页的文章卡片在三栏网格里很舒展，可当同一张卡片出现在侧栏「最新文章」里、宽度被压到 280px 时，标题还是三栏时的字号，摘要还是三行——挤作一团。</p>\n<p>媒体查询回答的是「视口多宽」，而组件真正想问的是「我所在的容器多宽」。这个 Gap，就是容器查询要填的。</p>\n<h2>最小可用案例</h2>\n<p>在容器上声明查询上下文：</p>\n<pre data-lang=\"css\"><code>.card-slot {\n  container-type: inline-size;\n  container-name: slot;\n}</code></pre>\n<p>组件内部用 <code>cqw</code> 单位与 <code>@container</code> 条件响应容器宽度：</p>\n<pre data-lang=\"css\"><code>@container slot (max-width: 320px) {\n  .post-card h3 { font-size: 1rem; }\n  .post-card .excerpt { -webkit-line-clamp: 2; }\n}</code></pre>\n<p><code>1cqw</code> 等于容器宽度的 1%，配合 <code>clamp()</code> 可以做流体字号：</p>\n<pre data-lang=\"css\"><code>.post-card h3 {\n  font-size: clamp(1rem, 4cqi, 1.3125rem);\n}</code></pre>\n<h2>落到 Nooj Log</h2>\n<p>文章卡片的组件样式全部改成以容器为准后，侧栏卡片自动收紧摘要行数、缩小标题，不需要任何变体类名。同一个组件，放进任何槽位都是对的——这才是「响应式组件」的本义。</p>\n<h2>兼容与降级</h2>\n<ul>\n<li>不支持容器查询的浏览器直接忽略 <code>@container</code> 块，样式回落到默认值，功能无损；</li>\n<li><code>container-type: inline-size</code> 会让容器获得独立的布局上下文，注意它会使容器高度不再被子元素撑开计算（块方向 containment），必要时显式给容器留高；</li>\n<li>命名容器（<code>container-name</code>）不是必须的，但在嵌套容器场景里能避免查询到外层容器，建议养成命名习惯。</li>\n</ul>\n<p>结论：从此写组件，先问容器，再问视口。</p>"
+}

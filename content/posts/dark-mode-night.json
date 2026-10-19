@@ -1,0 +1,14 @@
+{
+  "id": "dark-mode-night",
+  "title": "给博客加上深色模式的那个晚上",
+  "cat": "dev",
+  "date": "2026-08-30",
+  "read": 6,
+  "tags": [
+    "CSS",
+    "主题",
+    "细节"
+  ],
+  "excerpt": "从 prefers-color-scheme 到手动切换，从 CSS 变量重构到消灭首屏闪白——一次完整的主题切换实践。",
+  "content": "\n<h2>需求</h2>\n<p>读者在深夜点开一篇踩坑记录，迎面一片暖白——这不礼貌。于是决定给 Nooj Log 补上深色模式，并且提供手动切换：系统偏好只作为初值，选择权留给读者。</p>\n<h2>第一道坎：闪白</h2>\n<p>如果只在页面底部用 JS 设置 <code>data-theme</code>，首屏会先渲染一帧白色再切走，深夜 readers 会被晃一下。解法是把一段极小的初始化脚本放进 <code>&lt;head&gt;</code>，在 CSS 请求发出之前同步执行：</p>\n<pre data-lang=\"html\"><code>&lt;script&gt;\n  (function () {\n    try {\n      var t = localStorage.getItem(\"nooj-theme\");\n      if (!t) t = matchMedia(\"(prefers-color-scheme: dark)\").matches ? \"dark\" : \"light\";\n      document.documentElement.dataset.theme = t;\n    } catch (e) {}\n  })();\n&lt;/script&gt;</code></pre>\n<h2>第二道坎：语义变量</h2>\n<p>重构之初，组件里散落着不少写死的颜色。全部替换成语义变量之后，暗色主题只需要在 <code>[data-theme=\"dark\"]</code> 选择器里覆盖约三十个变量，组件代码一行不动：</p>\n<pre data-lang=\"css\"><code>[data-theme=\"dark\"] {\n  --bg: #171613;\n  --ink: #F0EEE4;\n  --accent: #45C08D;\n  /* …… */\n}</code></pre>\n<p>注意暗色下的主色要<strong>提亮</strong>而不是直接沿用：墨绿在白底上对比度 5.3:1，放到暗底上会发闷，换成 #45C08D 之后，按钮与链接重新有了精神。</p>\n<h2>第三道坎：对比度复查</h2>\n<p>暗色不是把颜色反过来就行。正文、弱信息、发丝线、代码高亮，全部重新过了一遍对比度：正文 ≥ 4.5:1，弱信息不低于 4.5:1，装饰线可以放松到 1.5:1 以上。</p>\n<h2>收尾</h2>\n<p>切换按钮做成了 44×44 的图标按钮，状态写进 <code>localStorage</code>，键名 <code>nooj-theme</code>。整个晚上三小时，最花时间的是对比度复查——但深夜读者值得。</p>"
+}

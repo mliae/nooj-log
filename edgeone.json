@@ -1,5 +1,6 @@
 {
   "name": "nooj-log",
+  "buildCommand": "node scripts/gen-data.mjs",
   "outputDirectory": ".",
   "nodeVersion": "22.11.0",
   "headers": [

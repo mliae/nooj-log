@@ -1,21 +1,27 @@
 # ============================================================
 # Nooj Log — Sveltia CMS 配置
+#
+# 数据流（重要）：
+#   content/posts/*.json   每篇文章一个文件 ← 后台在这里增删改
+#   content/posts.json     聚合产物（前台读取，由 scripts/gen-data.mjs 生成，勿手改）
+#   content/projects.json  项目（单文件）
+#
 # 部署前必改三处：
 #   1) backend.repo        → 你的 GitHub 仓库（owner/name）
 #   2) backend.base_url    → 站点正式域名（OAuth 函数同源部署，填站点域名即可）
 #   3) site_url            → 同 base_url
-# OAuth 端点 /api/oauth/* 由 edge-functions/ 下的 Edge Function 提供，
+# OAuth 端点 /api/oauth/* 由 edge-functions/ 提供，
 # GitHub OAuth App 的回调地址填 https://<你的域名>/api/oauth/callback
 # ============================================================
 
 backend:
   name: github
-  repo: mliae/nooj-log             # ← 改成你的 owner/repo
+  repo: mliae/nooj-log
   branch: main
-  base_url: https://i.ymao.me       # ← 站点域名（nooj.cn 备案通过后改回）
-  auth_endpoint: /api/oauth/auth    # Edge Function 路由，一般不用改
+  base_url: https://i.ymao.me
+  auth_endpoint: /api/oauth/auth
 
-site_url: https://i.ymao.me         # ← 同上
+site_url: https://i.ymao.me
 locale: zh-CN
 
 # 品牌标识：复用站点 favicon（点线「迹」纹样）
@@ -23,83 +29,95 @@ logo:
   src: /favicon.svg
   show_in_header: true
 
-# 媒体库：图片进仓库，公开路径与站内路径一致
+# 媒体库：图片进仓库 media/uploads，线上路径 /media/uploads/xxx
 media_folder: media/uploads
 public_folder: /media/uploads
 
+# 编辑器全局默认（作用于所有 markdown/richtext 字段）
+output:
+  omit_empty_optional_fields: true
+
 collections:
-  # ---------- 文章 ----------
+  # ---------- 文章（folder 模式：每篇一个文件，Typecho 式列表） ----------
   - name: posts
     label: 文章
-    files:
-      - name: posts
-        label: 全部文章
-        file: content/posts.json
-        format: json
-        fields:
-          - label: 文章列表
-            name: posts
-            widget: list
-            summary: "{{fields.title}} · {{fields.date}}"
-            fields:
-              - label: ID
-                name: id
-                widget: string
-                hint: 文章唯一标识，用于网址 post.html?id=xxx；只用小写字母、数字与连字符，发布后尽量不要改
-              - label: 标题
-                name: title
-                widget: string
-              - label: 分类
-                name: cat
-                widget: select
-                default: dev
-                options:
-                  - { label: "开发折腾", value: dev }
-                  - { label: "项目展示", value: project }
-                  - { label: "生活日常", value: life }
-              - label: 发布日期
-                name: date
-                widget: datetime
-                type: date
-                format: YYYY-MM-DD
-                hint: 列表按日期倒序自动排序
-              - label: 阅读时长（分钟）
-                name: read
-                widget: number
-                default: 5
-                value_type: int
-                min: 1
-                max: 120
-              - label: 标签
-                name: tags
-                widget: list
-                default: []
-                hint: 回车添加一个标签，建议 2–4 个
-              - label: 摘要
-                name: excerpt
-                widget: text
-                hint: 列表页与分享链接的摘要，一两句话即可
-              - label: 正文
-                name: content
-                widget: richtext
-                modes: [rich_text, raw]
-                buttons:
-                  - bold
-                  - italic
-                  - strikethrough
-                  - code
-                  - link
-                  - heading-one
-                  - heading-two
-                  - heading-three
-                  - bulleted-list
-                  - numbered-list
-                  - quote
-                editor_components: [code-block, image, table, hr]
-                minimal: false
-                hint: 默认可视化编辑（所见即所得）；点右上角「源码」可写 Markdown。图片可直接粘贴或拖入，自动上传到 media/uploads
+    label_singular: 文章
+    folder: content/posts
+    create: true          # 允许新建
+    delete: true          # 允许删除
+    format: json
+    extension: json
+    slug: "{{fields.id}}" # 文件名 = 文章 ID
+    identifier_field: id
+    summary: "{{title}} · {{date}} · {{cat}}"
+    sortable_fields: [date, title, cat, read]
+    default_sort: date
+    view_filters:
+      - { label: 开发折腾, field: cat, pattern: "^dev$" }
+      - { label: 项目展示, field: cat, pattern: "^project$" }
+      - { label: 生活日常, field: cat, pattern: "^life$" }
+    view_groups:
+      - { label: 分类, field: cat }
+      - { label: 日期, field: date }
+    fields:
+      - label: ID（网址标识）
+        name: id
+        widget: string
+        hint: 用于网址 post.html?id=xxx 与文件名。只用小写字母、数字与连字符；发布后不要改，否则旧链接会失效
+      - label: 标题
+        name: title
+        widget: string
+      - label: 分类
+        name: cat
+        widget: select
+        default: dev
+        options:
+          - { label: "开发折腾", value: dev }
+          - { label: "项目展示", value: project }
+          - { label: "生活日常", value: life }
+      - label: 发布日期
+        name: date
+        widget: datetime
+        type: date
+        format: YYYY-MM-DD
+        hint: 列表默认按日期倒序，最新在前
+      - label: 阅读时长（分钟）
+        name: read
+        widget: number
+        default: 5
+        value_type: int
+        min: 1
+        max: 120
+      - label: 标签
+        name: tags
+        widget: list
+        default: []
+        hint: 回车添加一个标签，建议 2–4 个；用于文章页标签与检索
+      - label: 摘要
+        name: excerpt
+        widget: text
+        hint: 列表页与分享链接的摘要，一两句话即可
+      - label: 正文
+        name: content
+        widget: richtext
+        modes: [rich_text, raw]
+        buttons:
+          - bold
+          - italic
+          - strikethrough
+          - code
+          - link
+          - heading-one
+          - heading-two
+          - heading-three
+          - bulleted-list
+          - numbered-list
+          - quote
+        editor_components: [code-block, image, table, hr]
+        minimal: false
+        hint: 默认可视化编辑；点右上角切「源码」写 Markdown。图片可粘贴/拖入，自动上传到 media/uploads
 
-  # ---------- 项目 ----------
+  # ---------- 项目（单文件） ----------
   - name: projects
     label: 项目
     files:
