@@ -7,7 +7,7 @@
 window.NOOJ_DATA = {
   posts: [
   {
-    "id": "测试文章",
+    "id": "test-post",
     "title": "测试文章标题",
     "cat": "dev",
     "date": "2026-10-19",
