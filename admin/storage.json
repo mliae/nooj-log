@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "enabled": false,
+  "enabled": true,
   "provider": "r2",
   "endpoint": "https://73f585cb3e678dcd4b019259d219a391.r2.cloudflarestorage.com",
   "region": "auto",
@@ -8,11 +8,11 @@
   "accessKeyId": "a9b50bf385d454167ce93ea54fd6e580",
   "secret": {
     "v": 1,
-    "iv": "dPrBNui3OltoXUV1",
-    "data": "QV9aUVJzsCqinFK0FcfkNofk1mv3LkvKN5tpjrjlRhghF2qs2w045Ejkw8gY6wgByob0Inu9HgjE9JepO4bQELgcpESXpFAvySy_Z0kyweMibtP29E33T8TNDqljl93y882LNdZ5"
+    "iv": "2VZuYYgcfP7v5QkX",
+    "data": "AtX_Tj0IG_jRqrmIOosl5TeIWeVLQpItsLiBekOVWT7LvCYuE9seWa9VLj_VqzaH83_TRgjLwnKb3eEqcW5-Q3We3cGpBRSDvG7wiwiPa8KqLNZ6RShlBU3c6a0sgrA-rPeNdv8s"
   },
-  "publicBase": "",
+  "publicBase": "nooj.mliae.ccwu.cc",
   "prefix": "",
   "forcePathStyle": true,
-  "updatedAt": "2026-10-20T08:12:39.911Z"
+  "updatedAt": "2026-10-20T09:54:54.666Z"
 }
