@@ -477,11 +477,23 @@ export function invalidateMediaTarget() { storageCache = null; }
 
 /* 直传 S3/R2（签名 URL），失败时抛出可读错误 */
 async function uploadToStorage(file) {
-  const r = await storageReq({
+  const presign = () => storageReq({
     action: "presign",
     filename: file.name,
     contentType: file.type || "application/octet-stream"
   });
+  let r;
+  try {
+    r = await presign();
+  } catch (e) {
+    /* 服务端偶发读不到图床配置（GitHub 抖动）：自动重试一次 */
+    if (e && e.code === "no_storage") {
+      await new Promise((res) => setTimeout(res, 1500));
+      r = await presign();
+    } else {
+      throw e;
+    }
+  }
   const res = await fetch(r.uploadUrl, {
     method: "PUT",
     headers: { "Content-Type": file.type || "application/octet-stream" },

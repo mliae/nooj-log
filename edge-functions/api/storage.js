@@ -133,24 +133,39 @@ async function sessionOk(req, env) {
 }
 
 async function gh(path, token, opts) {
-  const res = await fetch(API + path, {
-    method: (opts && opts.method) || "GET",
-    headers: Object.assign(
-      {
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "nooj-log-admin"
-      },
-      token ? { Authorization: "Bearer " + token } : {},
-      opts && opts.body ? { "Content-Type": "application/json" } : {}
-    ),
-    body: opts && opts.body ? JSON.stringify(opts.body) : undefined,
-    cache: "no-store"
-  });
+  let res;
+  try {
+    res = await fetch(API + path, {
+      method: (opts && opts.method) || "GET",
+      headers: Object.assign(
+        {
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "nooj-log-admin"
+        },
+        token ? { Authorization: "Bearer " + token } : {},
+        opts && opts.body ? { "Content-Type": "application/json" } : {}
+      ),
+      body: opts && opts.body ? JSON.stringify(opts.body) : undefined,
+      cache: "no-store"
+    });
+  } catch (e) {
+    return { ok: false, status: 0, data: null, netError: String((e && e.message) || e) };
+  }
   const text = await res.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
   return { ok: res.ok, status: res.status, data };
+}
+
+/* isolate 内存缓存：配置读成功一次后就地驻留，之后的 presign/list/upload
+   不再依赖每次出站 GitHub（边缘到 GitHub 抖动会让读配置偶发失败，
+   表现为「测试连接正常，一上传却提示尚未配置图床」）。 */
+let cfgCache = null;
+
+function cacheCfg(cfg) {
+  if (cfg && cfg.secretAccessKey) cfgCache = { cfg, at: Date.now() };
+  return cfg;
 }
 
 async function ghIdentity(req, env) {
@@ -410,7 +425,10 @@ export async function onRequestPost(context) {
     /* 读配置优先用令牌走 API（写完立刻一致），密码登录没有 Bearer 时退回服务端令牌 */
     const bearer = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
     const token = bearer || (await serverToken(env));
-    const cfg = await readConfig(env, token);
+    let cfg = await readConfig(env, token);
+    /* GitHub 抖动导致本次没读到时，退回 isolate 缓存，保证上传/列举不中断 */
+    if (cfg) cacheCfg(cfg);
+    else if (cfgCache) cfg = cfgCache.cfg;
 
     if (action === "get") {
       if (!cfg) {
@@ -458,6 +476,9 @@ export async function onRequestPost(context) {
       } catch (e) {
         return json({ error: "写入仓库失败：" + (e.message || "令牌可能没有写权限") }, 400);
       }
+      /* 缓存里必须放真实明文密钥（本次新填的，或从旧配置解封的），否则后续 presign 签名会错 */
+      cacheCfg({ ...next, secretAccessKey: secret || (cfg && cfg.secretAccessKey) || "" });
+      /* 但保存当场还要做连通性检查，直接用 next（含明文密钥） */
 
       /* 立刻做一次连通性检查，失败不阻断保存，但如实回报 */
       const probe = await s3Fetch(next, "GET", { query: { "list-type": "2", "max-keys": "1" } });
