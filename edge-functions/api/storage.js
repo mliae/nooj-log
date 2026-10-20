@@ -401,8 +401,18 @@ async function s3Fetch(cfg, method, { key = "", query = {}, body = "" }) {
   return { ok: res.ok, status: res.status, text };
 }
 
+/* 公开访问域名必须带协议：用户常只填 nooj.example.com，
+   拼出来的地址会被浏览器当成本站相对路径（i.ymao.me/nooj.example.com/…）。 */
+function pubBase(cfg) {
+  let b = String(cfg.publicBase || "").trim().replace(/\/+$/, "");
+  if (!b) return "";
+  if (!/^https?:\/\//i.test(b)) b = "https://" + b;
+  return b;
+}
+
 function publicUrl(cfg, key) {
-  if (cfg.publicBase) return String(cfg.publicBase).replace(/\/+$/, "") + "/" + uriEncode(key, true);
+  const base = pubBase(cfg);
+  if (base) return base + "/" + uriEncode(key, true);
   const t = target(cfg, key);
   return t.origin + t.uri;
 }
@@ -486,7 +496,7 @@ export async function onRequestPost(context) {
         bucket: String(c.bucket).trim(),
         accessKeyId: String(c.accessKeyId).trim(),
         secret: secretBox,
-        publicBase: String(c.publicBase || "").trim(),
+        publicBase: pubBase({ publicBase: c.publicBase }),
         prefix: String(c.prefix || "").trim(),
         forcePathStyle: c.forcePathStyle !== false,
         updatedAt: new Date().toISOString()

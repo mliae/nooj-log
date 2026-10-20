@@ -207,6 +207,9 @@ export async function renderSettings(container, ctx) {
     const testBtn = h("button", { class: "btn btn--ghost", onclick: doTest }, "测试连接");
 
     function current() {
+      /* 公开域名补协议：只填 host 时，拼出的图片地址会被当成站内相对路径 */
+      let publicBase = pub.value.trim().replace(/\/+$/, "");
+      if (publicBase && !/^https?:\/\//i.test(publicBase)) publicBase = "https://" + publicBase;
       return {
         enabled: enabled.checked,
         provider: preset.value,
@@ -214,7 +217,7 @@ export async function renderSettings(container, ctx) {
         region: region.value.trim() || "auto",
         bucket: bucket.value.trim(),
         accessKeyId: ak.value.trim(),
-        publicBase: pub.value.trim(),
+        publicBase,
         prefix: prefix.value.trim(),
         forcePathStyle: pathStyle.checked
       };
