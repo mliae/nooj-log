@@ -7,6 +7,8 @@
 import { h, icon, iconBtn, toast, confirmDialog, today, makeId, readTime, plainText, debounce } from "../util.js";
 import { state, CATS, catLabel, serialize } from "../store.js";
 import * as api from "../api.js";
+import { openMusicPicker } from "../music-picker.js";
+import { marker, expandSongs } from "../song-mark.js";
 
 const VENDOR = "/admin/app/vendor/vditor";
 
@@ -188,9 +190,11 @@ export async function renderEditor(container, ctx, id) {
   syncExcerptHint();
 
   /* ---------- 逻辑 ---------- */
+  const stripSongs = (s) => String(s || "").replace(/!song\([^)\n]*\)/g, "");
+
   function autoRead() {
     const md = vditor ? vditor.getValue() : post.md || "";
-    const guess = readTime(plainText(md.replace(/[#*`>_\-]/g, " ")));
+    const guess = readTime(plainText(stripSongs(md).replace(/[#*`>_\-]/g, " ")));
     readInput.value = guess;
     post.read = guess;
     markDirty();
@@ -198,7 +202,7 @@ export async function renderEditor(container, ctx, id) {
 
   function fillExcerpt() {
     const md = vditor ? vditor.getValue() : post.md || "";
-    const text = plainText(md.replace(/^#{1,6}\s+/gm, "").replace(/[`*_>#-]/g, " "));
+    const text = plainText(stripSongs(md).replace(/^#{1,6}\s+/gm, "").replace(/[`*_>#-]/g, " "));
     excerptTa.value = text.slice(0, 90).trim();
     post.excerpt = excerptTa.value;
     markDirty();
@@ -223,7 +227,7 @@ export async function renderEditor(container, ctx, id) {
 
   async function preview() {
     const md = vditor ? vditor.getValue() : post.md || "";
-    const html = await window.Vditor.md2html(md, { hljs: { enable: true, style: "github" }, math: { enable: false } });
+    const html = expandSongs(await window.Vditor.md2html(md, { hljs: { enable: true, style: "github" }, math: { enable: false } }));
     const overlay = h("div", { class: "overlay overlay--wide" },
       h("div", { class: "dialog dialog--preview" },
         h("div", { class: "preview__head" },
@@ -246,7 +250,7 @@ export async function renderEditor(container, ctx, id) {
     saveBtn.querySelector("span").textContent = "保存中…";
 
     try {
-      const html = await window.Vditor.md2html(md, { hljs: { enable: true, style: "github" }, math: { enable: false } });
+      const html = expandSongs(await window.Vditor.md2html(md, { hljs: { enable: true, style: "github" }, math: { enable: false } }));
 
       const next = {
         id: idInput.value.trim(),
@@ -255,7 +259,7 @@ export async function renderEditor(container, ctx, id) {
         date: dateInput.value || today(),
         read: Number(readInput.value) || 1,
         tags: Array.from(tagsValue),
-        excerpt: excerptTa.value.trim() || plainText(md).slice(0, 90),
+        excerpt: excerptTa.value.trim() || plainText(stripSongs(md)).slice(0, 90),
         draft: draftToggle.checked || undefined,
         md,
         content: html,
@@ -340,6 +344,23 @@ export async function renderEditor(container, ctx, id) {
     const md = p.md != null ? p.md : htmlToMd(p.content || "");
     const dark = document.documentElement.getAttribute("data-theme") === "dark";
 
+    /* 工具栏自定义项：插入音乐（弹窗选歌 → 写入 !song(id|歌名|歌手) 标记） */
+    const musicTool = {
+      name: "music",
+      tip: "插入音乐",
+      icon: '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 12.2V4l6.6-1.5v7.6"/><circle cx="4.3" cy="12.3" r="1.9"/><circle cx="10.9" cy="10.5" r="1.9"/></svg>',
+      click: () => {
+        openMusicPicker({
+          onPick: (t) => {
+            if (!vditor) return;
+            vditor.insertValue("\n\n" + marker(t) + "\n\n");
+            markDirty();
+            toast("已插入音乐卡片，保存后前台可点播", "ok", 3200);
+          }
+        });
+      }
+    };
+
     vditor = new window.Vditor(vdHost, {
       cdn: VENDOR,
       lang: "zh_CN",
@@ -355,7 +376,7 @@ export async function renderEditor(container, ctx, id) {
         "headings", "bold", "italic", "strike", "|",
         "list", "ordered-list", "check", "|",
         "quote", "line", "code", "inline-code", "link", "table", "|",
-        "upload", "undo", "redo", "|", "edit-mode", "preview", "fullscreen"
+        "upload", musicTool, "undo", "redo", "|", "edit-mode", "preview", "fullscreen"
       ],
       preview: {
         hljs: { enable: true, style: "github", lineNumber: false },
