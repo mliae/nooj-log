@@ -476,19 +476,22 @@ export async function onRequestPost(context) {
       } catch (e) {
         return json({ error: "写入仓库失败：" + (e.message || "令牌可能没有写权限") }, 400);
       }
-      /* 缓存里必须放真实明文密钥（本次新填的，或从旧配置解封的），否则后续 presign 签名会错 */
-      cacheCfg({ ...next, secretAccessKey: secret || (cfg && cfg.secretAccessKey) || "" });
-      /* 但保存当场还要做连通性检查，直接用 next（含明文密钥） */
+
+      /* 连通性检查与缓存都必须带「解密后的明文密钥」：
+         next 里只有加密盒 secret，s3Fetch 用 secretAccessKey 签名，
+         漏了它就会永远 SignatureDoesNotMatch（配置其实是对的）。 */
+      const plainCfg = { ...next, secretAccessKey: secret || (cfg && cfg.secretAccessKey) || "" };
+      cacheCfg(plainCfg);
 
       /* 立刻做一次连通性检查，失败不阻断保存，但如实回报 */
-      const probe = await s3Fetch(next, "GET", { query: { "list-type": "2", "max-keys": "1" } });
+      const probe = await s3Fetch(plainCfg, "GET", { query: { "list-type": "2", "max-keys": "1" } });
       return json({
         ok: true,
         probe: probe.ok ? "ok" : "failed",
         probeStatus: probe.status,
         probeMessage: probe.ok ? "" : probe.text.slice(0, 300),
         /* 直接回带新配置：前端据此回填，不再依赖 raw CDN 的同步延迟 */
-        config: publicCfg({ ...next, secretAccessKey: next.secret ? "saved" : "" })
+        config: publicCfg(plainCfg)
       });
     }
 
