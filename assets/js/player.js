@@ -101,6 +101,7 @@
         '<ul class="music-panel__list"></ul>' +
       "</div>";
     document.body.appendChild(root);
+    document.body.classList.add("has-music"); /* 让「回到顶部」让位 */
 
     fab = root.querySelector(".music-fab");
     fabCover = root.querySelector(".music-fab__cover");

@@ -6,7 +6,7 @@
 
 .music {
   position: fixed;
-  left: 18px;
+  right: 18px;
   bottom: 18px;
   z-index: 240;
   font-family: var(--font-sans);
@@ -174,7 +174,7 @@ li.is-active .music-panel__eq { display: inline-flex; }
 /* ---------- 歌单面板 ---------- */
 .music-panel {
   position: absolute;
-  left: 0;
+  right: 0;
   bottom: calc(100% + 10px);
   width: min(300px, calc(100vw - 36px));
   max-height: 320px;
@@ -264,11 +264,15 @@ li:not(.is-active) .music-panel__eq { display: none; }
   50%      { height: 100%; }
 }
 
+/* 播放器在右下角时，把「回到顶部」按钮顶上去，避免重叠 */
+body.has-music .back-top { bottom: calc(var(--s4) + 58px); }
+
 /* ---------- 窄屏 ---------- */
 @media (max-width: 640px) {
-  .music { left: 12px; bottom: 12px; }
+  .music { right: 12px; bottom: 12px; }
   .music-fab { width: 46px; height: 46px; }
   .music-panel { bottom: calc(100% + 8px); }
+  body.has-music .back-top { bottom: calc(var(--s4) + 52px); }
 }
 
 /* 打印 / 减少动态 */
