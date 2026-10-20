@@ -142,7 +142,8 @@
         ticking = true;
         requestAnimationFrame(update);
       }
-    }, { passive: true });
+      /* 软导航时随 window.noojSignal 一起解绑，避免重复叠加 */
+    }, { passive: true, signal: window.noojSignal });
     update();
   }
 
@@ -165,7 +166,7 @@
         tocTicking = true;
         requestAnimationFrame(updateToc);
       }
-    }, { passive: true });
+    }, { passive: true, signal: window.noojSignal });
     updateToc();
   } else if (tocWrap && !headings.length) {
     tocWrap.style.display = "none";
@@ -212,6 +213,6 @@
           "https://giscus.app"
         );
       }
-    });
+    }, { signal: window.noojSignal });
   })();
 })();

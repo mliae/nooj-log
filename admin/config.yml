@@ -63,7 +63,7 @@ collections:
       - label: ID（网址标识）
         name: id
         widget: string
-        hint: 用于网址 post.html?id=xxx 与文件名。只用小写字母、数字与连字符；发布后不要改，否则旧链接会失效
+        hint: 用于网址 posts/<id>.html 与文件名。只用小写字母、数字与连字符；发布后不要改，否则旧链接会失效（旧的 post.html?id= 地址仍会跳转过来）
       - label: 标题
         name: title
         widget: string

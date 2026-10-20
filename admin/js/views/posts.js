@@ -215,7 +215,7 @@ export async function renderPosts(container, ctx) {
           h("td", { class: "td td--read" }, (p.read || "—") + (p.read ? " 分钟" : "")),
           h("td", { class: "td td--act" },
             iconBtn("edit", "编辑", () => { location.hash = `#/posts/${encodeURIComponent(p.id)}`; }),
-            iconBtn("eye", "前台查看", () => window.open(`/post.html?id=${encodeURIComponent(p.id)}`, "_blank")),
+            iconBtn("eye", "前台查看", () => window.open(`/posts/${encodeURIComponent(p.id)}.html`, "_blank")),
             iconBtn("trash", "删除", () => removeOne(p, ctx), "icon-btn--danger")
           )
         )
