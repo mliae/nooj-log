@@ -468,7 +468,8 @@ export async function mediaTarget({ fresh = false } = {}) {
     const s = await storageGet();
     storageCache = s;
   } catch (e) {
-    storageCache = { configured: false, enabled: false };
+    /* 读失败 ≠ 没配置：带上标记，避免上传静默降级写进 Git 仓库 */
+    storageCache = { configured: false, enabled: false, error: e.message, code: e.code };
   }
   return storageCache;
 }
@@ -487,7 +488,7 @@ async function uploadToStorage(file) {
     r = await presign();
   } catch (e) {
     /* 服务端偶发读不到图床配置（GitHub 抖动）：自动重试一次 */
-    if (e && e.code === "no_storage") {
+    if (e && (e.code === "no_storage" || e.code === "cfg_unavailable")) {
       await new Promise((res) => setTimeout(res, 1500));
       r = await presign();
     } else {
@@ -508,11 +509,20 @@ async function uploadToStorage(file) {
   return { url: r.publicUrl, key: r.key, source: "s3" };
 }
 
-/* 统一上传入口：配了图床走图床，否则回落到仓库 */
+/* 统一上传入口：配了图床走图床，否则回落到仓库。
+   注意：只有「确实没配置」才回落；读配置失败时直接报错，绝不悄悄写进仓库。 */
 export async function uploadMedia(file, dir = "media/uploads") {
-  const target = await mediaTarget();
+  let target = await mediaTarget();
+  /* 缓存里是「读失败」时先强制刷新一次，避免一次抖动卡住整个会话 */
+  if (target && target.error) target = await mediaTarget({ fresh: true });
   if (target && target.configured && target.enabled) {
     return uploadToStorage(file);
+  }
+  if (target && target.error) {
+    const err = new Error("暂时读不到图床配置：" + target.error);
+    err.hint = "稍等几秒再试一次；若持续失败请到「设置 → 图床」点一次「测试连接」";
+    err.code = target.code || "cfg_unavailable";
+    throw err;
   }
 
   const clean = (file.name || "image.png").replace(/[^\w.\-]+/g, "-").toLowerCase();

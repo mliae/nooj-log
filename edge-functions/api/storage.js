@@ -218,22 +218,31 @@ function publicCfg(c) {
 }
 
 /* token 可选：给了就走 GitHub Contents API（写完立刻能读到），
-   否则退回 raw CDN——刚保存完 raw 可能还是旧副本，表现为「保存后又变回默认」。 */
+   否则退回 raw CDN——刚保存完 raw 可能还是旧副本，表现为「保存后又变回默认」。
+
+   返回值必须能区分三种情况，否则前端会把「读失败」当成「没配置」而静默
+   把图片传进仓库：
+     { cfg, missing:false }  读到了
+     { cfg:null, missing:true }  确实还没有配置文件（404）
+     { cfg:null, missing:false } 没读到（网络/鉴权问题），不可据此判定未配置 */
 async function readConfig(env, token) {
   /* 环境变量优先：适合把密钥完全放在服务端 */
   if (env.S3_ENDPOINT && env.S3_BUCKET && env.S3_ACCESS_KEY_ID && env.S3_SECRET_ACCESS_KEY) {
     return {
-      enabled: true,
-      provider: "env",
-      endpoint: env.S3_ENDPOINT,
-      region: env.S3_REGION || "auto",
-      bucket: env.S3_BUCKET,
-      accessKeyId: env.S3_ACCESS_KEY_ID,
-      secretAccessKey: env.S3_SECRET_ACCESS_KEY,
-      publicBase: env.S3_PUBLIC_BASE || "",
-      prefix: env.S3_PREFIX || "",
-      forcePathStyle: env.S3_FORCE_PATH_STYLE !== "false",
-      source: "env"
+      cfg: {
+        enabled: true,
+        provider: "env",
+        endpoint: env.S3_ENDPOINT,
+        region: env.S3_REGION || "auto",
+        bucket: env.S3_BUCKET,
+        accessKeyId: env.S3_ACCESS_KEY_ID,
+        secretAccessKey: env.S3_SECRET_ACCESS_KEY,
+        publicBase: env.S3_PUBLIC_BASE || "",
+        prefix: env.S3_PREFIX || "",
+        forcePathStyle: env.S3_FORCE_PATH_STYLE !== "false",
+        source: "env"
+      },
+      missing: false
     };
   }
   const { owner, name, branch } = repoOf(env);
@@ -252,17 +261,19 @@ async function readConfig(env, token) {
     try {
       const r = await gh(`/repos/${owner}/${name}/contents/admin/storage.json?ref=${branch}`, token);
       if (r.ok && r.data && r.data.content) {
-        return await finish(JSON.parse(b64decode(r.data.content)));
+        return { cfg: await finish(JSON.parse(b64decode(r.data.content))), missing: false };
       }
+      if (r.status === 404) return { cfg: null, missing: true };
     } catch (e) { /* 落到 raw */ }
   }
 
   try {
     const res = await fetch(`${RAW}/${owner}/${name}/${branch}/admin/storage.json?t=${Date.now()}`, { cache: "no-store" });
-    if (!res.ok) return null;
-    return await finish(await res.json());
+    if (res.status === 404) return { cfg: null, missing: true };
+    if (!res.ok) return { cfg: null, missing: false };
+    return { cfg: await finish(await res.json()), missing: false };
   } catch (e) {
-    return null;
+    return { cfg: null, missing: false };
   }
 }
 
@@ -425,13 +436,22 @@ export async function onRequestPost(context) {
     /* 读配置优先用令牌走 API（写完立刻一致），密码登录没有 Bearer 时退回服务端令牌 */
     const bearer = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
     const token = bearer || (await serverToken(env));
-    let cfg = await readConfig(env, token);
+    const rc = await readConfig(env, token);
+    let cfg = rc.cfg;
     /* GitHub 抖动导致本次没读到时，退回 isolate 缓存，保证上传/列举不中断 */
     if (cfg) cacheCfg(cfg);
     else if (cfgCache) cfg = cfgCache.cfg;
+    /* 既没读到、也不是“确实没有配置文件”：不能当成未配置，否则前端会静默传进仓库 */
+    const blind = !cfg && !rc.missing;
 
     if (action === "get") {
       if (!cfg) {
+        if (blind) {
+          return json({
+            error: "暂时读不到图床配置（边缘到 GitHub 抖动），请稍等重试",
+            code: "cfg_unavailable"
+          }, 503);
+        }
         return json({ configured: false, enabled: false, source: null });
       }
       return json(publicCfg(cfg));
@@ -495,7 +515,15 @@ export async function onRequestPost(context) {
       });
     }
 
-    if (!cfg || !cfg.secretAccessKey) return json({ error: "尚未配置图床", code: "no_storage" }, 409);
+    if (!cfg || !cfg.secretAccessKey) {
+      if (blind) {
+        return json({
+          error: "暂时读不到图床配置（边缘到 GitHub 抖动），请稍等几秒重试",
+          code: "cfg_unavailable"
+        }, 503);
+      }
+      return json({ error: "尚未配置图床", code: "no_storage" }, 409);
+    }
 
     if (action === "test") {
       const r = await s3Fetch(cfg, "GET", { query: { "list-type": "2", "max-keys": "1" } });

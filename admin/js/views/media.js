@@ -115,7 +115,15 @@ export async function renderMedia(container, ctx) {
 
     gridHost.append(bar);
 
-    if (!storage.configured || !storage.enabled) {
+    if (storage.error) {
+      gridHost.append(
+        h("div", { class: "banner" },
+          h("div", { class: "banner__text" },
+            h("strong", {}, "图床状态暂时读取失败"),
+            h("span", {}, storage.error + "。这不代表没有配置——请点「刷新」重试，别急着重新配置。")),
+          h("button", { class: "btn btn--ghost btn--sm", onclick: () => load(true) }, "刷新"))
+      );
+    } else if (!storage.configured || !storage.enabled) {
       gridHost.append(
         h("div", { class: "banner" },
           h("div", { class: "banner__text" },
@@ -137,9 +145,11 @@ export async function renderMedia(container, ctx) {
       h("div", { class: "media__dropinner" },
         icon("upload", 20),
         h("p", {}, "把图片拖到这里，或点击右上角「上传」"),
-        h("p", { class: "hint" }, storage.configured && storage.enabled
-          ? "直传对象存储，不写入 Git 仓库"
-          : "写入仓库 media/uploads，单张建议小于 800KB")));
+        h("p", { class: "hint" }, storage.error
+          ? "图床状态读取失败，上传会被暂停，避免误写进 Git 仓库"
+          : storage.configured && storage.enabled
+            ? "直传对象存储，不写入 Git 仓库"
+            : "写入仓库 media/uploads，单张建议小于 800KB")));
 
     ["dragenter", "dragover"].forEach((ev) =>
       drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("is-over"); }));
@@ -224,11 +234,13 @@ export async function renderMedia(container, ctx) {
     if (totalMb > 30) { toast("单次上传请控制在 30MB 内", "error"); return; }
 
     let ok = 0;
+    const srcs = new Set();
     for (const f of images) {
       try {
         toast(`正在上传 ${f.name}…`, "info", 1200);
         const r = await api.uploadMedia(f);
         if (r.source === "s3") api.invalidateMediaTarget();
+        srcs.add(r.source === "s3" ? "图床" : "仓库");
         const url = new URL(r.url, location.origin).href;
         try { await navigator.clipboard.writeText(url); } catch (e) { /* 忽略 */ }
         ok++;
@@ -237,7 +249,7 @@ export async function renderMedia(container, ctx) {
       }
     }
     if (ok) {
-      toast(`已上传 ${ok} 个文件，链接已复制`, "ok", 2600);
+      toast(`已上传 ${ok} 个文件（${[...srcs].join("/")}），链接已复制`, "ok", 2600);
       await load(false);
     }
   }
