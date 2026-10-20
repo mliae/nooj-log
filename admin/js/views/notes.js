@@ -322,7 +322,7 @@ export async function renderNotes(container, ctx) {
       sha = await api.writeNotes(next, sha, message);
       list = next;
       paintList();
-      toast("已保存，站点正在重建", "ok", 2800);
+      toast("已保存到暂存，点右上「发布」后上线", "ok", 3200);
     } catch (e) {
       toast(e.hint || e.message || "保存失败", "error", 5000);
       await load(false);

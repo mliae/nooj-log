@@ -142,7 +142,7 @@ export async function renderPosts(container, ctx) {
     bulkHost.innerHTML = "";
 
     if (!state.posts.length) {
-      tableHost.append(emptyState("还没有文章", "写下第一篇，它会直接提交到 GitHub 仓库并触发构建。",
+      tableHost.append(emptyState("还没有文章", "写下第一篇，保存进暂存区，点右上「发布」后上线。",
         h("button", { class: "btn btn--primary", onclick: () => { location.hash = "#/posts/new"; } }, "写第一篇")));
       foot.innerHTML = "";
       return;

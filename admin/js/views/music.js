@@ -120,7 +120,7 @@ export async function renderMusic(container, ctx) {
         "content/music.json", text,
         "music: 更新音乐服务配置", cfgSha || undefined
       );
-      toast("已保存，站点重建后前台生效", "ok");
+      toast("已保存到暂存区，点右上「发布」后前台生效", "ok");
       await refreshBlogList();
     } catch (e) {
       toast(e.message || "保存失败", "error", 6000);

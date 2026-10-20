@@ -274,7 +274,7 @@ export async function renderEditor(container, ctx, id) {
       }
 
       clearDirty();
-      toast("已保存，站点正在重建", "ok", 3200);
+      toast("已保存到暂存，点右上「发布」后上线", "ok", 3600);
       await ctx.reload();
       if (thenBack) location.hash = "#/posts";
       else {

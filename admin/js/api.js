@@ -10,7 +10,7 @@
 const API = "https://api.github.com";
 const RAW = "https://raw.githubusercontent.com";
 
-const DEFAULTS = { owner: "mliae", repo: "nooj-log", branch: "main" };
+const DEFAULTS = { owner: "mliae", repo: "nooj-log", branch: "main", stage: "draft" };
 
 export function repoConf() {
   try {
@@ -23,7 +23,31 @@ export function repoConf() {
 
 export function setRepoConf(conf) {
   localStorage.setItem("nooj_repo", JSON.stringify({ ...repoConf(), ...conf }));
+  stageReady = false; /* 换了暂存分支要重新确认它存在 */
 }
+
+/* ============================================================
+   暂存分支
+   ------------------------------------------------------------
+   EdgeOne 只有主干分支的提交会自动构建。因此后台的保存全部写进
+   stage 分支（默认 draft，不触发构建），点「发布并构建」才把它合并
+   进主干 —— 一次发布 = 一次构建，中间改多少都不用重新构建。
+   ============================================================ */
+export function stageOf() { return repoConf().stage || "draft"; }
+
+/* 待发布计数：顶栏发布按钮订阅它 */
+let pending = 0;
+const pendingSubs = new Set();
+export function pendingCount() { return pending; }
+export function setPending(n) {
+  pending = Math.max(0, Number(n) || 0);
+  pendingSubs.forEach((fn) => { try { fn(pending); } catch (e) { /* 忽略订阅异常 */ } });
+}
+export function onPending(fn) {
+  pendingSubs.add(fn);
+  return () => pendingSubs.delete(fn);
+}
+export function bumpPending(n = 1) { setPending(pending + n); }
 
 let token = null;
 let mode = "github";
@@ -171,14 +195,14 @@ export async function whoami() {
   return req("/user");
 }
 
-/* ---------- 目录 / 文件 ---------- */
+/* ---------- 目录 / 文件（内容读写一律走暂存分支） ---------- */
 export async function listDir(dir) {
   if (mode === "password") {
-    const r = await dataReq({ action: "list", dir });
+    const r = await dataReq({ action: "list", dir, branch: stageOf() });
     return r.files || [];
   }
-  const { owner, repo, branch } = repoConf();
-  const data = await req(`/repos/${owner}/${repo}/contents/${encPath(dir)}?ref=${branch}`);
+  const { owner, repo } = repoConf();
+  const data = await req(`/repos/${owner}/${repo}/contents/${encPath(dir)}?ref=${stageOf()}`);
   return (Array.isArray(data) ? data : [])
     .filter((f) => f.type === "file")
     .map((f) => ({ name: f.name, path: f.path, sha: f.sha, size: f.size }));
@@ -186,59 +210,69 @@ export async function listDir(dir) {
 
 export async function readFile(path, sha) {
   if (mode === "password") {
-    const r = await dataReq({ action: "read", path });
+    const r = await dataReq({ action: "read", path, branch: stageOf() });
     return { text: r.text, sha: r.sha };
   }
-  const { owner, repo, branch } = repoConf();
+  const { owner, repo } = repoConf();
+  const stage = stageOf();
   if (sha) {
     try {
-      const res = await fetch(`${RAW}/${owner}/${repo}/${branch}/${encPath(path)}?v=${sha.slice(0, 10)}`, {
+      const res = await fetch(`${RAW}/${owner}/${repo}/${stage}/${encPath(path)}?v=${sha.slice(0, 10)}`, {
         cache: "force-cache"
       });
       if (res.ok) return { text: await res.text(), sha };
     } catch (e) { /* 落到 API 分支 */ }
   }
-  const data = await req(`/repos/${owner}/${repo}/contents/${encPath(path)}?ref=${branch}`);
+  const data = await req(`/repos/${owner}/${repo}/contents/${encPath(path)}?ref=${stage}`);
   return { text: b64decode(data.content), sha: data.sha };
 }
 
 export async function writeFile(path, text, message, sha) {
+  await ensureStage();
   if (mode === "password") {
-    const r = await dataReq({ action: "write", path, text, message, sha });
+    const r = await dataReq({ action: "write", path, text, message, sha, branch: stageOf() });
+    bumpPending();
     return r.sha;
   }
-  const { owner, repo, branch } = repoConf();
-  const body = { message, content: b64encode(text), branch };
+  const { owner, repo } = repoConf();
+  const body = { message, content: b64encode(text), branch: stageOf() };
   if (sha) body.sha = sha;
   const data = await req(`/repos/${owner}/${repo}/contents/${encPath(path)}`, { method: "PUT", body });
+  bumpPending();
   return data.content ? data.content.sha : null;
 }
 
 export async function deleteFile(path, message, sha) {
+  await ensureStage();
   if (mode === "password") {
-    await dataReq({ action: "delete", path, message, sha });
+    await dataReq({ action: "delete", path, message, sha, branch: stageOf() });
+    bumpPending();
     return;
   }
-  const { owner, repo, branch } = repoConf();
+  const { owner, repo } = repoConf();
   await req(`/repos/${owner}/${repo}/contents/${encPath(path)}`, {
     method: "DELETE",
-    body: { message, sha, branch }
+    body: { message, sha, branch: stageOf() }
   });
+  bumpPending();
 }
 
 export async function deleteFiles(paths, message) {
   if (!paths.length) return;
+  await ensureStage();
   if (mode === "password") {
-    await dataReq({ action: "batchDelete", paths, message });
+    await dataReq({ action: "batchDelete", paths, message, branch: stageOf() });
+    bumpPending();
     return;
   }
   if (paths.length === 1) {
     const { sha } = await readFileMeta(paths[0]);
     return deleteFile(paths[0], message, sha);
   }
-  const { owner, repo, branch } = repoConf();
+  const { owner, repo } = repoConf();
+  const stage = stageOf();
 
-  const ref = await req(`/repos/${owner}/${repo}/git/ref/heads/${branch}`);
+  const ref = await req(`/repos/${owner}/${repo}/git/ref/heads/${stage}`);
   const commitSha = ref.object.sha;
   const commit = await req(`/repos/${owner}/${repo}/git/commits/${commitSha}`);
 
@@ -255,16 +289,127 @@ export async function deleteFiles(paths, message) {
     body: { message, tree: tree.sha, parents: [commitSha] }
   });
 
-  await req(`/repos/${owner}/${repo}/git/refs/heads/${branch}`, {
+  await req(`/repos/${owner}/${repo}/git/refs/heads/${stage}`, {
     method: "PATCH",
     body: { sha: newCommit.sha }
   });
+  bumpPending();
 }
 
 async function readFileMeta(path) {
-  const { owner, repo, branch } = repoConf();
-  const data = await req(`/repos/${owner}/${repo}/contents/${encPath(path)}?ref=${branch}`);
+  const { owner, repo } = repoConf();
+  const data = await req(`/repos/${owner}/${repo}/contents/${encPath(path)}?ref=${stageOf()}`);
   return { sha: data.sha };
+}
+
+/* ---------- 暂存分支：创建 / 比较 / 发布 ---------- */
+
+async function headSha(branch) {
+  const { owner, repo } = repoConf();
+  const ref = await req(`/repos/${owner}/${repo}/git/ref/heads/${branch}`);
+  return ref.object.sha;
+}
+
+/* 暂存分支不存在时从主干拉一个；已存在则不动 */
+let stageReady = false;
+export async function ensureStage() {
+  if (stageReady) return;
+  if (mode === "password") {
+    await dataReq({ action: "ensureStage" });
+    stageReady = true;
+    return;
+  }
+  const { owner, repo } = repoConf();
+  const stage = stageOf();
+  try {
+    await req(`/repos/${owner}/${repo}/git/ref/heads/${stage}`);
+  } catch (e) {
+    if (e.status !== 404) throw e;
+    const sha = await headSha(repoConf().branch);
+    await req(`/repos/${owner}/${repo}/git/refs`, {
+      method: "POST",
+      body: { ref: "refs/heads/" + stage, sha }
+    });
+  }
+  stageReady = true;
+}
+
+/* 合并 base ← head；返回 { status: "merged" | "uptodate" | "conflict" } */
+async function mergeInto(base, head, message) {
+  if (mode === "password") {
+    return dataReq({ action: "merge", base, head, message });
+  }
+  const { owner, repo } = repoConf();
+  try {
+    const data = await req(`/repos/${owner}/${repo}/merges`, {
+      method: "POST",
+      body: { base, head, commit_message: message }
+    });
+    return { status: data ? "merged" : "uptodate", sha: data && data.sha };
+  } catch (e) {
+    if (e.status === 409) return { status: "conflict" };
+    throw e;
+  }
+}
+
+/* 主干与暂存的分叉状态 */
+export async function compareStage() {
+  if (mode === "password") {
+    const r = await dataReq({ action: "pending" });
+    setPending(r && r.ahead ? r.ahead : 0);
+    return r;
+  }
+  const { owner, repo, branch } = repoConf();
+  const stage = stageOf();
+  try {
+    const d = await req(`/repos/${owner}/${repo}/compare/${branch}...${stage}`);
+    const r = { status: d.status, ahead: d.ahead_by || 0, behind: d.behind_by || 0 };
+    setPending(r.ahead);
+    return r;
+  } catch (e) {
+    if (e.status === 404) { setPending(0); return { status: "missing", ahead: 0, behind: 0 }; }
+    throw e;
+  }
+}
+
+export async function refreshPending() {
+  try { return await compareStage(); } catch (e) { return null; }
+}
+
+/* 发布：暂存 → 主干（这一步才触发 EdgeOne 构建），随后把暂存快进到主干 */
+export async function publish(message) {
+  await ensureStage();
+  const { owner, repo, branch } = repoConf();
+  const stage = stageOf();
+
+  if (mode === "password") {
+    const r = await dataReq({ action: "publish", message, branch, stage });
+    setPending(0);
+    return r;
+  }
+
+  /* 1) 主干领先时先把主干合回暂存，避免发布丢内容 */
+  const cmp = await compareStage();
+  if (cmp.behind > 0) {
+    const back = await mergeInto(stage, branch, "chore: 同步线上到暂存");
+    if (back.status === "conflict") return { status: "conflict", stage: "sync" };
+  }
+
+  /* 2) 暂存 → 主干（产生 1 个合并提交，EdgeOne 只在这里构建一次） */
+  const merged = await mergeInto(branch, stage, message || "publish: 发布暂存内容");
+  if (merged.status === "conflict") return { status: "conflict", stage: "publish" };
+
+  /* 3) 暂存快进到主干，保持两条线同步 */
+  try {
+    const sha = await headSha(branch);
+    await req(`/repos/${owner}/${repo}/git/refs/heads/${stage}`, {
+      method: "PATCH",
+      body: { sha, force: true }
+    });
+  } catch (e) { /* 快进失败不影响发布结果 */ }
+
+  setPending(0);
+  return { status: merged.status };
 }
 
 /* ---------- 项目（单文件数组） ---------- */
@@ -363,14 +508,17 @@ export async function uploadMedia(file, dir = "media/uploads") {
   const CH = 0x8000;
   for (let i = 0; i < buf.length; i += CH) bin += String.fromCharCode.apply(null, buf.subarray(i, i + CH));
 
+  await ensureStage();
   if (mode === "password") {
-    await dataReq({ action: "upload", path, base64: btoa(bin), message: `media: 上传 ${file.name}` });
+    await dataReq({ action: "upload", path, base64: btoa(bin), message: `media: 上传 ${file.name}`, branch: stageOf() });
+    bumpPending();
   } else {
-    const { owner, repo, branch } = repoConf();
+    const { owner, repo } = repoConf();
     await req(`/repos/${owner}/${repo}/contents/${encPath(path)}`, {
       method: "PUT",
-      body: { message: `media: 上传 ${file.name}`, content: btoa(bin), branch }
+      body: { message: `media: 上传 ${file.name}`, content: btoa(bin), branch: stageOf() }
     });
+    bumpPending();
   }
   return { url: "/" + path, source: "repo" };
 }

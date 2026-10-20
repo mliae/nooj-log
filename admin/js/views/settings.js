@@ -299,23 +299,30 @@ export async function renderSettings(container, ctx) {
     const owner = h("input", { class: "input input--mono", value: conf.owner });
     const repo = h("input", { class: "input input--mono", value: conf.repo });
     const branch = h("input", { class: "input input--mono", value: conf.branch });
+    const stage = h("input", { class: "input input--mono", value: conf.stage || "draft" });
 
     repoCard.innerHTML = "";
     repoCard.append(
       h("header", { class: "card__head" },
         h("h3", { class: "card__title" }, "仓库与部署"),
-        h("p", { class: "card__sub" }, "内容写入 GitHub 仓库，EdgeOne 检测到提交后自动构建。这里的设置只影响当前浏览器。")),
+        h("p", { class: "card__sub" }, "内容先写进暂存分支，点「发布」才合并到主干并触发一次构建。这里的设置只影响当前浏览器。")),
       h("div", { class: "formgrid formgrid--3" },
-        field("Owner", owner), field("Repository", repo), field("Branch", branch)),
+        field("Owner", owner), field("Repository", repo), field("主干分支", branch), field("暂存分支", stage)),
       h("div", { class: "card__actions" },
         h("button", { class: "btn btn--primary", onclick: () => {
-          api.setRepoConf({ owner: owner.value.trim(), repo: repo.value.trim(), branch: branch.value.trim() });
+          api.setRepoConf({
+            owner: owner.value.trim(),
+            repo: repo.value.trim(),
+            branch: branch.value.trim(),
+            stage: stage.value.trim() || "draft"
+          });
           toast("已保存到本机", "ok");
         } }, "保存")),
       h("div", { class: "kv kv--tight" },
         kv("站点地址", "https://i.ymao.me"),
         kv("内容目录", "content/posts · content/projects.json"),
-        kv("构建命令", "node scripts/gen-data.mjs"))
+        kv("构建命令", "node scripts/gen-data.mjs"),
+        kv("构建次数", "只有推送到主干才构建：一次「发布」= 1 次，保存多少次都不算"))
     );
 
     /* 服务端实际使用的仓库（环境变量可覆盖） */

@@ -87,14 +87,14 @@ export async function renderProjects(container, ctx) {
           body)),
       h("div", { class: "listfoot" },
         h("span", { class: "listfoot__info" }, `共 ${list.length} 个项目 · 顺序即前台顺序`),
-        h("span", { class: "muted" }, "改动会直接提交到仓库并触发构建"))
+        h("span", { class: "muted" }, "改动先进暂存区，点右上「发布」后上线"))
     );
   }
 
   async function persist(message) {
     try {
       sha = await api.writeProjects(list, sha, message);
-      toast("已保存，站点正在重建", "ok", 2800);
+      toast("已保存到暂存，点右上「发布」后上线", "ok", 3200);
       paint();
     } catch (e) {
       toast(e.hint || e.message || "保存失败", "error", 5000);

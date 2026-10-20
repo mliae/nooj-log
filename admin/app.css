@@ -1228,3 +1228,28 @@ button.chip { cursor: pointer; }
 @media (max-width: 720px) {
   .music-row__tags, .music-row__src { display: none; }
 }
+
+/* ============================================================
+   发布（暂存分支 → 主干）
+   ============================================================ */
+.publish {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+.publish__count {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+.publish.is-dirty .publish__count { color: var(--accent-strong); font-weight: 600; }
+.publish__btn { gap: 5px; }
+.publish__btn:disabled { opacity: .45; cursor: default; }
+@media (max-width: 640px) {
+  .publish { padding-left: 8px; margin-left: 6px; gap: 6px; }
+  .publish__count { display: none; }
+}

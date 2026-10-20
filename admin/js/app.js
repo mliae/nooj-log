@@ -276,8 +276,55 @@ function setTopbar(title, actions = [], backHash) {
         ? h("button", { class: "icon-btn", title: "返回", onclick: () => { location.hash = backHash; } }, icon("back", 16))
         : null,
       h("h2", { class: "topbar__title" }, title)),
-    h("div", { class: "topbar__actions" }, ...actions)
+    h("div", { class: "topbar__actions" }, ...actions, publishWidget())
   );
+}
+
+/* ---------- 发布：暂存分支 → 主干（这一步才触发构建） ---------- */
+let pubOff = null;
+
+function publishWidget() {
+  const count = h("span", { class: "publish__count mono" }, "");
+  const label = h("span", {}, "发布");
+  const btn = h("button", { class: "btn btn--primary btn--sm publish__btn", onclick: doPublish }, icon("up", 13), label);
+  const box = h("div", { class: "publish" }, count, btn);
+
+  function paint(n) {
+    count.textContent = n > 0 ? "待发布 " + n : "已同步";
+    box.classList.toggle("is-dirty", n > 0);
+    btn.disabled = n === 0;
+  }
+  paint(api.pendingCount());
+  if (pubOff) pubOff();
+  pubOff = api.onPending(paint);
+  return box;
+}
+
+async function doPublish() {
+  const n = api.pendingCount();
+  const yes = await confirmDialog({
+    title: "发布到线上？",
+    body: "把暂存的 " + n + " 处修改合并到主干 main，触发 1 次 EdgeOne 构建（约 1–2 分钟上线）。中间多次保存不会重复构建。",
+    confirmText: "发布并构建"
+  });
+  if (!yes) return;
+  const btn = document.querySelector(".publish__btn");
+  const label = btn && btn.querySelector("span");
+  if (btn) btn.disabled = true;
+  if (label) label.textContent = "发布中…";
+  try {
+    const r = await api.publish();
+    if (r && r.status === "conflict") {
+      toast("合并冲突：线上与暂存改了同一个文件，需要手动处理后再发布", "error", 8000);
+    } else {
+      toast("已发布，站点正在构建（约 1–2 分钟）", "ok", 5000);
+    }
+  } catch (e) {
+    toast(e.status === 409 ? "合并冲突：线上与暂存改了同一个文件，需要手动处理" : (e.message || "发布失败"), "error", 8000);
+  } finally {
+    if (btn) btn.disabled = false;
+    if (label) label.textContent = "发布";
+  }
 }
 
 /* ---------- 路由 ---------- */
@@ -329,10 +376,14 @@ async function route() {
 async function boot() {
   renderShell();
   try {
+    /* 暂存分支不存在时先建好，内容读写都走它（不触发构建） */
+    await api.ensureStage().catch(() => {});
     await loadPosts();
   } catch (e) {
     toast(e.hint || e.message || "内容加载失败", "error", 5000);
   }
+  /* 待发布数量：进后台先对一次主干 ⇄ 暂存 */
+  api.refreshPending().catch(() => {});
   window.addEventListener("hashchange", route);
   await route();
 }

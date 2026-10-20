@@ -155,6 +155,55 @@ function safePath(p) {
   return s;
 }
 
+/* ============================================================
+   分支策略（与前台后台 api.js 对齐）
+   内容默认读写暂存分支（不触发 EdgeOne 构建），
+   「发布」时才合并进主干，一次发布只花一次构建。
+   ============================================================ */
+function branches(env) {
+  return {
+    main: env.GITHUB_BRANCH || "main",
+    stage: env.GITHUB_BRANCH_STAGE || "draft"
+  };
+}
+
+function branchOf(env, requested) {
+  const { main, stage } = branches(env);
+  const b = String(requested || "").trim();
+  if (!b) return stage;
+  if (b === main || b === stage) return b;
+  return null;
+}
+
+/* 暂存分支不存在则从主干创建 */
+async function ensureBranch(base, token, env) {
+  const { main, stage } = branches(env);
+  const ref = await gh(`${base}/git/ref/heads/${stage}`, token);
+  if (ref.ok) return { ok: true };
+  if (ref.status !== 404) return { ok: false, message: "读取暂存分支失败" };
+  const head = await gh(`${base}/git/ref/heads/${main}`, token);
+  if (!head.ok) return { ok: false, message: "读取主干失败" };
+  const made = await gh(`${base}/git/refs`, token, {
+    method: "POST",
+    body: { ref: "refs/heads/" + stage, sha: head.data.object.sha }
+  });
+  return made.ok ? { ok: true } : { ok: false, message: "创建暂存分支失败" };
+}
+
+async function mergeInto(base, token, fromEnv, baseName, headName, message) {
+  const { main, stage } = branches(fromEnv);
+  if (![main, stage].includes(baseName) || ![main, stage].includes(headName)) {
+    return { error: "分支不在允许范围内" };
+  }
+  const r = await gh(`${base}/merges`, token, {
+    method: "POST",
+    body: { base: baseName, head: headName, commit_message: message }
+  });
+  if (r.status === 409) return { status: "conflict" };
+  if (!r.ok) return { error: (r.data && r.data.message) || "合并失败", status: r.status };
+  return { status: r.data ? "merged" : "uptodate" };
+}
+
 const encPath = (p) => p.split("/").map(encodeURIComponent).join("/");
 
 export async function onRequestPost(context) {
@@ -171,10 +220,19 @@ export async function onRequestPost(context) {
     return json({ error: "服务端未配置仓库令牌，密码登录无法读写内容。请在「系统设置 → 账号与安全」里保存 GitHub Token。", code: "no_token" }, 503);
   }
 
-  const { owner, name, branch } = repoOf(env);
+  const { owner, name } = repoOf(env);
   const base = `/repos/${owner}/${name}`;
+  const branch = branchOf(env, body.branch);
+  const needBranch = ["list", "read", "write", "delete", "batchDelete", "upload"].includes(body.action);
+  if (needBranch && !branch) return json({ error: "分支不在允许范围内" }, 400);
 
   try {
+    /* 写内容前先确保暂存分支存在（从主干拉出来） */
+    if (needBranch) {
+      const ensured = await ensureBranch(base, token, env);
+      if (!ensured.ok) return json({ error: ensured.message }, 500);
+    }
+
     if (body.action === "list") {
       const dir = safePath(body.dir);
       if (!dir) return json({ error: "目录不在允许范围内" }, 400);
@@ -279,6 +337,57 @@ export async function onRequestPost(context) {
       });
       if (!r.ok) return json({ error: (r.data && r.data.message) || "上传失败" }, r.status);
       return json({ ok: true, path: "/" + path });
+    }
+
+    /* ---------- 暂存分支：创建 / 比较 / 合并 / 发布 ---------- */
+    if (body.action === "ensureStage") {
+      const r = await ensureBranch(base, token, env);
+      return r.ok ? json({ ok: true }) : json({ error: r.message }, 500);
+    }
+
+    if (body.action === "pending") {
+      const { main, stage } = branches(env);
+      const r = await gh(`${base}/compare/${main}...${stage}`, token);
+      if (!r.ok) {
+        if (r.status === 404) return json({ status: "missing", ahead: 0, behind: 0 });
+        return json({ error: (r.data && r.data.message) || "比较分支失败" }, r.status);
+      }
+      return json({ status: r.data.status, ahead: r.data.ahead_by || 0, behind: r.data.behind_by || 0 });
+    }
+
+    if (body.action === "merge") {
+      const r = await mergeInto(base, token, env, String(body.base || ""), String(body.head || ""), body.message || "chore: 合并");
+      if (r.error) return json({ error: r.error, status: r.status }, r.status || 400);
+      return json({ status: r.status });
+    }
+
+    if (body.action === "publish") {
+      const { main, stage } = branches(env);
+      const ensured = await ensureBranch(base, token, env);
+      if (!ensured.ok) return json({ error: ensured.message }, 500);
+
+      /* 主干领先时先把主干合回暂存，避免发布覆盖线上内容 */
+      const cmp = await gh(`${base}/compare/${main}...${stage}`, token);
+      if (!cmp.ok) return json({ error: "比较分支失败" }, 500);
+      if ((cmp.data.behind_by || 0) > 0) {
+        const back = await mergeInto(base, token, env, stage, main, "chore: 同步线上到暂存");
+        if (back.status === "conflict") return json({ status: "conflict", stage: "sync" }, 409);
+        if (back.error) return json({ error: back.error }, 500);
+      }
+
+      const merged = await mergeInto(base, token, env, main, stage, body.message || "publish: 发布暂存内容");
+      if (merged.status === "conflict") return json({ status: "conflict", stage: "publish" }, 409);
+      if (merged.error) return json({ error: merged.error }, 500);
+
+      /* 暂存快进到主干，两边保持同步 */
+      const head = await gh(`${base}/git/ref/heads/${main}`, token);
+      if (head.ok) {
+        await gh(`${base}/git/refs/heads/${stage}`, token, {
+          method: "PATCH",
+          body: { sha: head.data.object.sha, force: true }
+        });
+      }
+      return json({ status: merged.status });
     }
 
     return json({ error: "未知操作：" + body.action }, 400);
