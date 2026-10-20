@@ -145,12 +145,14 @@ export async function renderSettings(container, ctx) {
   /* ============================================================
      图床
      ============================================================ */
-  async function paintStorage() {
+  async function paintStorage(prefetched) {
     storageCard.innerHTML = "";
     storageCard.append(h("div", { class: "card__loading" }, "正在读取图床配置…"));
 
-    let cfg = { configured: false };
-    try { cfg = await api.storageGet(); } catch (e) { cfg = { configured: false, error: e.message }; }
+    let cfg = prefetched || { configured: false };
+    if (!prefetched) {
+      try { cfg = await api.storageGet(); } catch (e) { cfg = { configured: false, error: e.message }; }
+    }
 
     storageCard.innerHTML = "";
     storageCard.append(
@@ -229,7 +231,7 @@ export async function renderSettings(container, ctx) {
         } else {
           toast("图床配置已保存，连接正常", "ok", 3000);
         }
-        await paintStorage();
+        await paintStorage(r.config);
       } catch (e) {
         toast(e.message || "保存失败", "error", 7000);
       } finally {

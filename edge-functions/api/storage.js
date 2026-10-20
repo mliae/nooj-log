@@ -183,7 +183,28 @@ async function serverToken(env) {
   }
 }
 
-async function readConfig(env) {
+/* 对外可见的配置（去掉密钥本体，只留“是否已设置”） */
+function publicCfg(c) {
+  return {
+    configured: true,
+    source: c.source || "repo",
+    enabled: !!c.enabled,
+    provider: c.provider || "s3",
+    endpoint: c.endpoint || "",
+    region: c.region || "",
+    bucket: c.bucket || "",
+    accessKeyId: c.accessKeyId || "",
+    publicBase: c.publicBase || "",
+    prefix: c.prefix || "",
+    forcePathStyle: c.forcePathStyle !== false,
+    secretSet: !!(c.secretAccessKey || c.secret),
+    updatedAt: c.updatedAt || null
+  };
+}
+
+/* token 可选：给了就走 GitHub Contents API（写完立刻能读到），
+   否则退回 raw CDN——刚保存完 raw 可能还是旧副本，表现为「保存后又变回默认」。 */
+async function readConfig(env, token) {
   /* 环境变量优先：适合把密钥完全放在服务端 */
   if (env.S3_ENDPOINT && env.S3_BUCKET && env.S3_ACCESS_KEY_ID && env.S3_SECRET_ACCESS_KEY) {
     return {
@@ -201,16 +222,30 @@ async function readConfig(env) {
     };
   }
   const { owner, name, branch } = repoOf(env);
-  try {
-    const res = await fetch(`${RAW}/${owner}/${name}/${branch}/admin/storage.json?t=${Date.now()}`, { cache: "no-store" });
-    if (!res.ok) return null;
-    const cfg = await res.json();
+  const finish = async (cfg) => {
     if (cfg && cfg.secret) {
-      const s = await unseal(env, "s3", cfg.secret);
-      cfg.secretAccessKey = s.secretAccessKey || "";
+      try {
+        const s = await unseal(env, "s3", cfg.secret);
+        cfg.secretAccessKey = s.secretAccessKey || "";
+      } catch (e) { /* 密钥换过：视为未配置密钥，交给用户重填 */ }
     }
     cfg.source = "repo";
     return cfg;
+  };
+
+  if (token) {
+    try {
+      const r = await gh(`/repos/${owner}/${name}/contents/admin/storage.json?ref=${branch}`, token);
+      if (r.ok && r.data && r.data.content) {
+        return await finish(JSON.parse(b64decode(r.data.content)));
+      }
+    } catch (e) { /* 落到 raw */ }
+  }
+
+  try {
+    const res = await fetch(`${RAW}/${owner}/${name}/${branch}/admin/storage.json?t=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) return null;
+    return await finish(await res.json());
   } catch (e) {
     return null;
   }
@@ -372,35 +407,22 @@ export async function onRequestPost(context) {
   if (!user) return json({ error: "未登录或登录已过期" }, 401);
 
   try {
-    const cfg = await readConfig(env);
+    /* 读配置优先用令牌走 API（写完立刻一致），密码登录没有 Bearer 时退回服务端令牌 */
+    const bearer = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+    const token = bearer || (await serverToken(env));
+    const cfg = await readConfig(env, token);
 
     if (action === "get") {
       if (!cfg) {
         return json({ configured: false, enabled: false, source: null });
       }
-      return json({
-        configured: true,
-        source: cfg.source || "repo",
-        enabled: !!cfg.enabled,
-        provider: cfg.provider || "s3",
-        endpoint: cfg.endpoint || "",
-        region: cfg.region || "",
-        bucket: cfg.bucket || "",
-        accessKeyId: cfg.accessKeyId || "",
-        publicBase: cfg.publicBase || "",
-        prefix: cfg.prefix || "",
-        forcePathStyle: cfg.forcePathStyle !== false,
-        secretSet: !!cfg.secretAccessKey,
-        updatedAt: cfg.updatedAt || null
-      });
+      return json(publicCfg(cfg));
     }
 
     if (action === "save") {
       if (!user.canPush) return json({ error: "没有仓库写权限" }, 403);
       /* 服务端令牌优先；刚登录还没同步过来时，回落到浏览器持有的 OAuth 令牌
          （能否写入由实际 PUT 自证，不额外放权） */
-      const bearer = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
-      const token = (await serverToken(env)) || bearer;
       if (!token) {
         return json({
           error: "服务端未配置仓库令牌：请用 GitHub 重新登录一次（会自动配置），或在「账号与安全」填入 GitHub Token",
@@ -431,7 +453,11 @@ export async function onRequestPost(context) {
         forcePathStyle: c.forcePathStyle !== false,
         updatedAt: new Date().toISOString()
       };
-      await writeConfig(env, token, next);
+      try {
+        await writeConfig(env, token, next);
+      } catch (e) {
+        return json({ error: "写入仓库失败：" + (e.message || "令牌可能没有写权限") }, 400);
+      }
 
       /* 立刻做一次连通性检查，失败不阻断保存，但如实回报 */
       const probe = await s3Fetch(next, "GET", { query: { "list-type": "2", "max-keys": "1" } });
@@ -439,7 +465,9 @@ export async function onRequestPost(context) {
         ok: true,
         probe: probe.ok ? "ok" : "failed",
         probeStatus: probe.status,
-        probeMessage: probe.ok ? "" : probe.text.slice(0, 300)
+        probeMessage: probe.ok ? "" : probe.text.slice(0, 300),
+        /* 直接回带新配置：前端据此回填，不再依赖 raw CDN 的同步延迟 */
+        config: publicCfg({ ...next, secretAccessKey: next.secret ? "saved" : "" })
       });
     }
 
