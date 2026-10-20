@@ -28,7 +28,10 @@
   }
 
   function fetchJson(url) {
-    return fetch(url, { cache: "no-cache" }).then(function (r) {
+    /* 不要写 cache: "no-cache" —— 那等于每次打开页面都强制向服务器验证一次，
+       白白多一个 RTT。这里交给 HTTP 缓存策略（edgeone.json 里给 /content/*
+       配了 max-age + stale-while-revalidate），重复访问直接命中本地缓存。 */
+    return fetch(url).then(function (r) {
       if (!r.ok) throw new Error(url + " -> HTTP " + r.status);
       return r.json();
     });

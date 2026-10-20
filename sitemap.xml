@@ -2,66 +2,66 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://i.ymao.me/</loc>
-    <lastmod>2026-10-20</lastmod>
+    <lastmod>2026-10-19</lastmod>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://i.ymao.me/posts.html</loc>
-    <lastmod>2026-10-20</lastmod>
+    <lastmod>2026-10-19</lastmod>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://i.ymao.me/notes.html</loc>
-    <lastmod>2026-10-20</lastmod>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://i.ymao.me/projects.html</loc>
-    <lastmod>2026-10-20</lastmod>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://i.ymao.me/about.html</loc>
-    <lastmod>2026-10-20</lastmod>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://i.ymao.me/post.html?id=test-post</loc>
     <lastmod>2026-10-19</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://i.ymao.me/post.html?id=docker-timezone-ghost-bug</loc>
+    <loc>https://i.ymao.me/projects.html</loc>
+    <lastmod>2026-10-19</lastmod>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://i.ymao.me/about.html</loc>
+    <lastmod>2026-10-19</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://i.ymao.me/posts/test-post.html</loc>
+    <lastmod>2026-10-19</lastmod>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://i.ymao.me/posts/docker-timezone-ghost-bug.html</loc>
     <lastmod>2026-10-12</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://i.ymao.me/post.html?id=nooj-log-static-blog</loc>
+    <loc>https://i.ymao.me/posts/nooj-log-static-blog.html</loc>
     <lastmod>2026-10-05</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://i.ymao.me/post.html?id=css-container-queries</loc>
+    <loc>https://i.ymao.me/posts/css-container-queries.html</loc>
     <lastmod>2026-09-26</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://i.ymao.me/post.html?id=cli-todo</loc>
+    <loc>https://i.ymao.me/posts/cli-todo.html</loc>
     <lastmod>2026-09-18</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://i.ymao.me/post.html?id=weekend-cycling</loc>
+    <loc>https://i.ymao.me/posts/weekend-cycling.html</loc>
     <lastmod>2026-09-13</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://i.ymao.me/post.html?id=dark-mode-night</loc>
+    <loc>https://i.ymao.me/posts/dark-mode-night.html</loc>
     <lastmod>2026-08-30</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://i.ymao.me/post.html?id=first-meal-after-moving</loc>
+    <loc>https://i.ymao.me/posts/first-meal-after-moving.html</loc>
     <lastmod>2026-08-16</lastmod>
     <priority>0.7</priority>
   </url>

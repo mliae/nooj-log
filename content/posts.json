@@ -9,8 +9,7 @@
       "tags": [
         "测试"
       ],
-      "excerpt": "测试文章  测试文章标题",
-      "content": "测试文章标题测试文章标题测试文章标题测试文章标题测试文章标题测试文章标题"
+      "excerpt": "测试文章  测试文章标题"
     },
     {
       "id": "docker-timezone-ghost-bug",
@@ -23,8 +22,7 @@
         "踩坑",
         "Node.js"
       ],
-      "excerpt": "定时任务在本地跑得好好的，一进容器就迟到八小时。排查到最后，发现问题不在代码，而在 /etc/localtime。",
-      "content": "\n<h2>现象</h2>\n<p>需求很简单：每天上午九点给用户推一封日报。本地跑得稳稳的，部署到服务器之后，用户反馈邮件总是在下午五点才到——不多不少，正好晚了八个小时。</p>\n<p>第一反应是服务器时间不对，登上去 <code>date</code> 一看，好家伙，显示的是 UTC。</p>\n<pre data-lang=\"bash\"><code>$ date\nMon Oct 12 09:00:00 UTC 2026</code></pre>\n<h2>排查</h2>\n<p>代码里用的是 <code>new Date()</code> 和 cron 表达式，逻辑上没有任何时区假设，问题只可能出在环境。挨个检查之后，定位到两个层面：</p>\n<ul>\n<li>宿主机本身是 UTC 时区，但之前的部署直接跑在宿主机上，代码里有段被遗忘的 <code>TZ=Asia/Shanghai</code> 兜底；</li>\n<li>这次改用 Docker 部署，容器是一个干净的 Ubuntu 镜像，<code>/etc/localtime</code> 不存在，环境变量也没有带 TZ。</li>\n</ul>\n<p>容器里的 cron 按照 UTC 的九点触发，映射到东八区就是下午五点。代码没变，环境变了，Bug 就这么「幽灵」一样出现了。</p>\n<h2>根因</h2>\n<blockquote><p>容器不会继承宿主机的时区。对容器而言，世界默认从 UTC 开始。</p></blockquote>\n<p>想通这一点之后，修复方案就清晰了，二选一：</p>\n<h3>方案一：声明环境变量</h3>\n<pre data-lang=\"bash\"><code>docker run -e TZ=Asia/Shanghai my-app</code></pre>\n<p>或者在 compose 里统一声明：</p>\n<pre data-lang=\"yaml\"><code>services:\n  app:\n    image: my-app\n    environment:\n      TZ: Asia/Shanghai</code></pre>\n<h3>方案二：挂载时区文件</h3>\n<pre data-lang=\"bash\"><code>docker run -v /etc/localtime:/etc/localtime:ro -v /etc/timezone:/etc/timezone:ro my-app</code></pre>\n<p>我最终选了方案一：环境变量声明更符合「配置显式化」的原则，不依赖宿主机的具体文件，换台机器也不会踩坑。</p>\n<h2>教训</h2>\n<ol>\n<li><strong>时间相关的问题，先怀疑环境，再怀疑代码。</strong>「我本地是好的」这句话，一半的功劳要记在环境一致上。</li>\n<li><strong>把 TZ 写进部署清单</strong>，和内存限制、重启策略放在一起，成为镜像交付的一部分。</li>\n<li>更彻底的解法是内部一律用 UTC 存储与计算，只在展示层做时区转换——这是后话，本期日报服务先这样，记入 TODO。</li>\n</ol>"
+      "excerpt": "定时任务在本地跑得好好的，一进容器就迟到八小时。排查到最后，发现问题不在代码，而在 /etc/localtime。"
     },
     {
       "id": "nooj-log-static-blog",
@@ -37,8 +35,7 @@
         "静态站点",
         "工程实践"
       ],
-      "excerpt": "为什么最终没有选任何框架——以及这个用 HTML + CSS + 一点点 JS 手写出来的博客，是如何兼顾清爽与体感的。",
-      "content": "\n<h2>动机</h2>\n<p>折腾过太多博客系统：Hexo、Hugo、Notion 派生方案，每一个都很强大，每一个也都在「写一篇 800 字的随笔」和「跑一遍构建流水线」之间横亘着越来越长的距离。我想要的其实很简单：打开编辑器，写，保存，刷新，发布。</p>\n<p>于是有了 Nooj Log——你现在看到的这个站点。零依赖、零构建、零追踪器，三个 HTML 加一份 CSS，一把 JS。</p>\n<h2>架构决策</h2>\n<ul>\n<li><strong>形态</strong>：纯静态多页站点，不做 SPA。文章详情页通过 <code>?id=</code> 从数据层读取，省掉构建步骤，也保留分享链接的能力。</li>\n<li><strong>分层</strong>：数据层（data.js）与视图层（各页面 js）分离，新增文章只动数据文件，不动结构。</li>\n<li><strong>设计系统</strong>：tokens.css 集中管理颜色、字阶、间距、动效，暗色模式只覆盖语义变量，组件零改动。</li>\n</ul>\n<h2>目录结构</h2>\n<pre data-lang=\"text\"><code>nooj-log/\n├── index.html        # 首页：hero + 分类 + 最新文章 + 项目 + 近况\n├── posts.html        # 文章归档：分类筛选 + 搜索\n├── post.html         # 文章详情：目录 + 阅读进度 + 上下篇\n├── projects.html     # 项目展示\n├── about.html        # 关于\n└── assets/\n    ├── css/          # tokens / base / components 三层\n    └── js/           # data / main / home / posts / post</code></pre>\n<h2>设计上的几个取舍</h2>\n<p>清爽不等于性冷淡。暖纸白的底、墨绿的主色、衬线的中文大标题，再让等宽字体去承担日期、标签、目录这些「开发者气质」的信息——这是「代码与生活」在视觉上的对位。</p>\n<p>全站的母题是「迹」：hero 里点阵淡出、区块间的虚线分隔、线上的菱形结点、终端卡片里的 git 提交图，甚至列表符号都是菱形。slogan 里那个「迹」字，底下也压了一条点线下划。</p>\n<h2>部署</h2>\n<p>整个目录传到任何静态托管（或一台 Nginx）上就完成了，域名指向 <code>nooj.cn</code>。没有 CI、没有 hook，git push 之后手动 sync，痛快。</p>\n<h2>路线图</h2>\n<ul>\n<li>RSS 已就位（页脚入口）</li>\n<li>评论系统：倾向自建一个基于 issue 的轻方案，再议</li>\n<li>暗色模式的对比度细节，随文章增加持续打磨</li>\n</ul>"
+      "excerpt": "为什么最终没有选任何框架——以及这个用 HTML + CSS + 一点点 JS 手写出来的博客，是如何兼顾清爽与体感的。"
     },
     {
       "id": "css-container-queries",
@@ -51,8 +48,7 @@
         "前端",
         "布局"
       ],
-      "excerpt": "媒体查询关心的是视口，而组件关心的是自己的容器。一次文章卡片的布局改造，记录 container query 的正确用法。",
-      "content": "\n<h2>媒体查询的盲区</h2>\n<p>首页的文章卡片在三栏网格里很舒展，可当同一张卡片出现在侧栏「最新文章」里、宽度被压到 280px 时，标题还是三栏时的字号，摘要还是三行——挤作一团。</p>\n<p>媒体查询回答的是「视口多宽」，而组件真正想问的是「我所在的容器多宽」。这个 Gap，就是容器查询要填的。</p>\n<h2>最小可用案例</h2>\n<p>在容器上声明查询上下文：</p>\n<pre data-lang=\"css\"><code>.card-slot {\n  container-type: inline-size;\n  container-name: slot;\n}</code></pre>\n<p>组件内部用 <code>cqw</code> 单位与 <code>@container</code> 条件响应容器宽度：</p>\n<pre data-lang=\"css\"><code>@container slot (max-width: 320px) {\n  .post-card h3 { font-size: 1rem; }\n  .post-card .excerpt { -webkit-line-clamp: 2; }\n}</code></pre>\n<p><code>1cqw</code> 等于容器宽度的 1%，配合 <code>clamp()</code> 可以做流体字号：</p>\n<pre data-lang=\"css\"><code>.post-card h3 {\n  font-size: clamp(1rem, 4cqi, 1.3125rem);\n}</code></pre>\n<h2>落到 Nooj Log</h2>\n<p>文章卡片的组件样式全部改成以容器为准后，侧栏卡片自动收紧摘要行数、缩小标题，不需要任何变体类名。同一个组件，放进任何槽位都是对的——这才是「响应式组件」的本义。</p>\n<h2>兼容与降级</h2>\n<ul>\n<li>不支持容器查询的浏览器直接忽略 <code>@container</code> 块，样式回落到默认值，功能无损；</li>\n<li><code>container-type: inline-size</code> 会让容器获得独立的布局上下文，注意它会使容器高度不再被子元素撑开计算（块方向 containment），必要时显式给容器留高；</li>\n<li>命名容器（<code>container-name</code>）不是必须的，但在嵌套容器场景里能避免查询到外层容器，建议养成命名习惯。</li>\n</ul>\n<p>结论：从此写组件，先问容器，再问视口。</p>"
+      "excerpt": "媒体查询关心的是视口，而组件关心的是自己的容器。一次文章卡片的布局改造，记录 container query 的正确用法。"
     },
     {
       "id": "cli-todo",
@@ -65,8 +61,7 @@
         "CLI",
         "小工具"
       ],
-      "excerpt": "受够了图形待办软件的启动速度，用 Node.js 写了一个住在终端里的待办工具。",
-      "content": "\n<h2>动机</h2>\n<p>我的待办列表和终端待在一起：写代码的间隙冒出一个念头，切去图形软件点三层菜单回来，思路已经断了。于是决定让待办就住在终端里——一个命令添加，一个命令完成，一个命令看今天。</p>\n<h2>命令设计</h2>\n<pre data-lang=\"bash\"><code>$ todo add \"把容器查询那篇写完\" --tag css\n$ todo ls --today\n$ todo done 3\n$ todo rm 3</code></pre>\n<p>原则只有一条：<strong>常用命令必须能盲打</strong>。所以 add / ls / done 三个词最短，参数全部可选。</p>\n<h2>数据结构</h2>\n<p>没有引数据库，一个 JSON 文件就是全部存储，位于 <code>~/.todo.json</code>：</p>\n<pre data-lang=\"json\"><code>{\n  \"nextId\": 12,\n  \"items\": [\n    { \"id\": 3, \"text\": \"把容器查询那篇写完\", \"tag\": \"css\", \"done\": true, \"createdAt\": \"2026-09-20T10:12:00+08:00\" }\n  ]\n}</code></pre>\n<p>每条命令都是「读文件 → 改内存 → 写回」，写入用临时文件 + rename 保证原子性，杜绝写一半断电留下的半个 JSON。</p>\n<h2>彩色输出</h2>\n<p>ANSI 转义序列手写即可，不必引依赖：</p>\n<pre data-lang=\"javascript\"><code>const paint = (code, s) => \"\\u001b[\" + code + \"m\" + s + \"\\u001b[0m\";\nconst green = (s) => paint(32, s);\nconst dim = (s) => paint(2, s);\n\n// 输出一行待办：未完成绿色，已完成置灰加删除线\nconsole.log(item.done ? dim(\"~~ \" + item.text + \" ~~\") : green(\"• \" + item.text));</code></pre>\n<p>同时检测 <code>process.stdout.isTTY</code>，管道输出时自动退化成纯文本，方便 <code>todo ls | grep</code>。</p>\n<h2>发布</h2>\n<p><code>npm publish</code> 之后全局安装即用。300 行，零运行时依赖，这是它最让我满意的地方——五年后 <code>npm i -g cli-todo</code>，照样跑。</p>"
+      "excerpt": "受够了图形待办软件的启动速度，用 Node.js 写了一个住在终端里的待办工具。"
     },
     {
       "id": "weekend-cycling",
@@ -79,8 +74,7 @@
         "骑行",
         "咖啡"
       ],
-      "excerpt": "早起、沿江、逆风、回程顺风；以及回家后那杯参数刚刚好的手冲。",
-      "content": "\n<h2>路线</h2>\n<p>六点半出发，沿江一路向北。去程逆风，码表稳定在 18，喘得理直气壮；回程顺风，同样的踏频变成 26，车轮轻得像是谁在背后推。40 公里下来，膝盖微酸，脑子里空空如也——这正是我需要的。</p>\n<h2>清晨的光</h2>\n<p>江面在这个季节会有很薄的雾，太阳升高之前，光是散的，落在水面上像一层筛过的糖粉。骑过桥洞的时候温度会突然降两度，风从领口灌进来，人立刻清醒。</p>\n<blockquote><p>运动的仪式感，一半在路上，一半在回家之后的那杯咖啡里。</p></blockquote>\n<h2>一杯参数刚刚好的手冲</h2>\n<p>回家冲了一杯埃塞俄比亚，日晒，草莓与发酵香。参数照旧：</p>\n<ul>\n<li>粉量 15g，水温 92°C，粉水比 1:15</li>\n<li>三段注水：30g 焖蒸 30 秒，绕圈至 120g，最后中心补至 225g</li>\n<li>总时长控制在两分十秒以内，酸质明亮不扎口</li>\n</ul>\n<p>坐在阳台上喝完，衣服还没换，汗未干，咖啡正温。周末到这里，才算真正开始。</p>"
+      "excerpt": "早起、沿江、逆风、回程顺风；以及回家后那杯参数刚刚好的手冲。"
     },
     {
       "id": "dark-mode-night",
@@ -93,8 +87,7 @@
         "主题",
         "细节"
       ],
-      "excerpt": "从 prefers-color-scheme 到手动切换，从 CSS 变量重构到消灭首屏闪白——一次完整的主题切换实践。",
-      "content": "\n<h2>需求</h2>\n<p>读者在深夜点开一篇踩坑记录，迎面一片暖白——这不礼貌。于是决定给 Nooj Log 补上深色模式，并且提供手动切换：系统偏好只作为初值，选择权留给读者。</p>\n<h2>第一道坎：闪白</h2>\n<p>如果只在页面底部用 JS 设置 <code>data-theme</code>，首屏会先渲染一帧白色再切走，深夜 readers 会被晃一下。解法是把一段极小的初始化脚本放进 <code>&lt;head&gt;</code>，在 CSS 请求发出之前同步执行：</p>\n<pre data-lang=\"html\"><code>&lt;script&gt;\n  (function () {\n    try {\n      var t = localStorage.getItem(\"nooj-theme\");\n      if (!t) t = matchMedia(\"(prefers-color-scheme: dark)\").matches ? \"dark\" : \"light\";\n      document.documentElement.dataset.theme = t;\n    } catch (e) {}\n  })();\n&lt;/script&gt;</code></pre>\n<h2>第二道坎：语义变量</h2>\n<p>重构之初，组件里散落着不少写死的颜色。全部替换成语义变量之后，暗色主题只需要在 <code>[data-theme=\"dark\"]</code> 选择器里覆盖约三十个变量，组件代码一行不动：</p>\n<pre data-lang=\"css\"><code>[data-theme=\"dark\"] {\n  --bg: #171613;\n  --ink: #F0EEE4;\n  --accent: #45C08D;\n  /* …… */\n}</code></pre>\n<p>注意暗色下的主色要<strong>提亮</strong>而不是直接沿用：墨绿在白底上对比度 5.3:1，放到暗底上会发闷，换成 #45C08D 之后，按钮与链接重新有了精神。</p>\n<h2>第三道坎：对比度复查</h2>\n<p>暗色不是把颜色反过来就行。正文、弱信息、发丝线、代码高亮，全部重新过了一遍对比度：正文 ≥ 4.5:1，弱信息不低于 4.5:1，装饰线可以放松到 1.5:1 以上。</p>\n<h2>收尾</h2>\n<p>切换按钮做成了 44×44 的图标按钮，状态写进 <code>localStorage</code>，键名 <code>nooj-theme</code>。整个晚上三小时，最花时间的是对比度复查——但深夜读者值得。</p>"
+      "excerpt": "从 prefers-color-scheme 到手动切换，从 CSS 变量重构到消灭首屏闪白——一次完整的主题切换实践。"
     },
     {
       "id": "first-meal-after-moving",
@@ -107,8 +100,7 @@
         "厨房",
         "记录"
       ],
-      "excerpt": "新厨房的第一餐是一碗番茄鸡蛋面。窗外有夕阳，锅里有热气，这就够了。",
-      "content": "<h2 id=\"收拾\">收拾</h2>\n<p>纸箱堆到天花板，胶带撕开的声音在空房间里格外响。最后一本书从箱子里拿出来的时候，天正好开始暗，橘色的光从西窗斜进来，落在没拆封的微波炉上。</p>\n<h2 id=\"第一餐\">第一餐</h2>\n<p>点了灶，试火。新家的火力比旧东家猛得多，油下锅三秒就冒烟。两个番茄切块下锅炒出沙，兑水烧开，面条下去，最后淋一层蛋液——滚汤里缓缓搅开，云一样。</p>\n<p>端着碗站在厨房吃，窗外是陌生小区的路灯，锅里还剩一点汤。搬家的疲惫在这一碗面前突然具体起来：原来我需要的就是一顿热饭。</p>\n<blockquote>\n<p>锅里有热气，窗外有夕阳，新地方就有了第一分归属感。</p>\n</blockquote>\n<h2 id=\"窗外\">窗外</h2>\n<p>收拾完碗，靠着窗台把剩下的面汤喝完。楼下的樟树被风吹得翻面，远处有人在喊孩子回家吃饭。生活换了布景，仍然继续。</p>\n"
+      "excerpt": "新厨房的第一餐是一碗番茄鸡蛋面。窗外有夕阳，锅里有热气，这就够了。"
     }
   ]
 }

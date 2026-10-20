@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>给博客加上深色模式的那个晚上 — Nooj Log</title>
+  <meta name="description" content="从 prefers-color-scheme 到手动切换，从 CSS 变量重构到消灭首屏闪白——一次完整的主题切换实践。">
+  <meta property="og:title" content="给博客加上深色模式的那个晚上">
+  <meta property="og:description" content="从 prefers-color-scheme 到手动切换，从 CSS 变量重构到消灭首屏闪白——一次完整的主题切换实践。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://i.ymao.me/posts/dark-mode-night.html">
+  <meta property="article:published_time" content="2026-08-30">
+  <link rel="canonical" href="https://i.ymao.me/posts/dark-mode-night.html">
+  <meta name="theme-color" content="#FAF9F5">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="alternate" type="application/rss+xml" title="Nooj Log" href="../rss.xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/base.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("nooj-theme");
+        if (!t) t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", t);
+        document.documentElement.classList.add("js");
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+
+  <div class="read-progress" id="read-progress" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="logo" href="../index.html" aria-label="Nooj Log 首页">
+        <svg class="logo-mark" viewBox="0 0 28 28" aria-hidden="true">
+          <rect x="1" y="1" width="26" height="26" rx="7" fill="var(--accent)"/>
+          <path d="M8 19.5 L14 8.5 L20 19.5" fill="none" stroke="var(--bg)" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2.6 3.4"/>
+          <circle cx="8" cy="19.5" r="2.1" fill="var(--bg)"/>
+          <circle cx="14" cy="8.5" r="2.1" fill="var(--bg)"/>
+          <circle cx="20" cy="19.5" r="2.1" fill="var(--bg)"/>
+        </svg>
+        <span class="logo-text">Nooj<span class="logo-dot">.</span>Log</span>
+      </a>
+      <nav class="site-nav" aria-label="主导航">
+        <a href="../index.html">首页</a>
+        <a href="../posts.html">文章</a>
+        <a href="../notes.html">说说</a>
+        <a href="../projects.html">项目</a>
+        <a href="../about.html">关于</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-btn theme-toggle" type="button" aria-label="切换到深色模式" aria-pressed="false">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+          </svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+          </svg>
+        </button>
+        <button class="icon-btn nav-toggle" type="button" aria-label="打开菜单" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <article class="post-article">
+      <div class="container">
+        <!-- 文章头部（由 post.js 填充） -->
+        <header class="post-header" id="post-header"><a class="back-link" href="../posts.html">← 返回文章列表</a><span class="chip chip-dev">开发折腾</span><h1>给博客加上深色模式的那个晚上</h1><div class="post-meta mono"><time datetime="2026-08-30">2026-08-30</time><span class="sep">/</span><span>6 min read</span><span class="sep">/</span><span class="tags"><span class="tag">#CSS</span><span class="tag">#主题</span><span class="tag">#细节</span></span></div><p class="post-lede">从 prefers-color-scheme 到手动切换，从 CSS 变量重构到消灭首屏闪白——一次完整的主题切换实践。</p></header>
+
+        <!-- 正文 + 目录 -->
+        <div class="post-body-grid">
+          <div class="post-content" id="post-content">
+<h2 id="sec-1">需求<a class="anchor" href="#sec-1" aria-hidden="true">#</a></h2>
+<p>读者在深夜点开一篇踩坑记录，迎面一片暖白——这不礼貌。于是决定给 Nooj Log 补上深色模式，并且提供手动切换：系统偏好只作为初值，选择权留给读者。</p>
+<h2 id="sec-2">第一道坎：闪白<a class="anchor" href="#sec-2" aria-hidden="true">#</a></h2>
+<p>如果只在页面底部用 JS 设置 <code>data-theme</code>，首屏会先渲染一帧白色再切走，深夜 readers 会被晃一下。解法是把一段极小的初始化脚本放进 <code>&lt;head&gt;</code>，在 CSS 请求发出之前同步执行：</p>
+<div class="code-block"><div class="code-head"><span>html</span><button class="copy-btn" type="button">复制</button></div><pre><code>&lt;script&gt;
+  (<span class="tok-kw">function</span> () {
+    <span class="tok-kw">try</span> {
+      <span class="tok-kw">var</span> t = localStorage.getItem(<span class="tok-str">&quot;nooj-theme&quot;</span>);
+      <span class="tok-kw">if</span> (!t) t = matchMedia(<span class="tok-str">&quot;(prefers-color-scheme: dark)&quot;</span>).matches ? <span class="tok-str">&quot;dark&quot;</span> : <span class="tok-str">&quot;light&quot;</span>;
+      document.documentElement.dataset.theme = t;
+    } <span class="tok-kw">catch</span> (e) {}
+  })();
+&lt;/script&gt;</code></pre></div>
+<h2 id="sec-3">第二道坎：语义变量<a class="anchor" href="#sec-3" aria-hidden="true">#</a></h2>
+<p>重构之初，组件里散落着不少写死的颜色。全部替换成语义变量之后，暗色主题只需要在 <code>[data-theme="dark"]</code> 选择器里覆盖约三十个变量，组件代码一行不动：</p>
+<div class="code-block"><div class="code-head"><span>css</span><button class="copy-btn" type="button">复制</button></div><pre><code>[data-theme=<span class="tok-str">&quot;dark&quot;</span>] {
+  --bg: #<span class="tok-num">171613</span>;
+  --ink: #F0EEE4;
+  --accent: #45C08D;
+  <span class="tok-com">/* …… */</span>
+}</code></pre></div>
+<p>注意暗色下的主色要<strong>提亮</strong>而不是直接沿用：墨绿在白底上对比度 5.3:1，放到暗底上会发闷，换成 #45C08D 之后，按钮与链接重新有了精神。</p>
+<h2 id="sec-4">第三道坎：对比度复查<a class="anchor" href="#sec-4" aria-hidden="true">#</a></h2>
+<p>暗色不是把颜色反过来就行。正文、弱信息、发丝线、代码高亮，全部重新过了一遍对比度：正文 ≥ 4.5:1，弱信息不低于 4.5:1，装饰线可以放松到 1.5:1 以上。</p>
+<h2 id="sec-5">收尾<a class="anchor" href="#sec-5" aria-hidden="true">#</a></h2>
+<p>切换按钮做成了 44×44 的图标按钮，状态写进 <code>localStorage</code>，键名 <code>nooj-theme</code>。整个晚上三小时，最花时间的是对比度复查——但深夜读者值得。</p></div>
+          <aside class="post-toc" id="post-toc" aria-label="文章目录">
+            <p class="toc-title mono">目录 / CONTENTS</p>
+            <nav class="toc-list" id="toc-list"><a class="lv2" href="#sec-1">需求</a><a class="lv2" href="#sec-2">第一道坎：闪白</a><a class="lv2" href="#sec-3">第二道坎：语义变量</a><a class="lv2" href="#sec-4">第三道坎：对比度复查</a><a class="lv2" href="#sec-5">收尾</a></nav>
+          </aside>
+        </div>
+
+        <!-- 上下篇 + 文末 -->
+        <footer class="post-footer">
+          <nav class="post-nav" id="post-nav" aria-label="上一篇 / 下一篇"><a href="../posts/first-meal-after-moving.html"><span class="nav-label">← 上一篇（更早）</span><span class="nav-title">搬家后的第一顿饭</span></a><a class="next" href="../posts/weekend-cycling.html"><span class="nav-label">下一篇（更新）→</span><span class="nav-title">周末骑行 40 公里，和一杯好喝的手冲</span></a></nav>
+          <p class="post-note" id="post-note"><strong>本文写于 2026-08-30</strong> · 归类于「开发折腾」 · 如果这篇记录帮到了你，或者发现有说得不对的地方，欢迎来信聊聊 ——  <a href="../about.html">关于我 →</a></p>
+        </footer>
+
+        <!-- 评论区（Giscus，未配置时显示降级提示） -->
+        <section class="giscus-section" aria-label="评论区">
+          <h2 class="giscus-title">评论 / COMMENTS</h2>
+          <div id="giscus"></div>
+        </section>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <a class="logo" href="../index.html" aria-label="Nooj Log 首页">
+            <svg class="logo-mark" viewBox="0 0 28 28" aria-hidden="true">
+              <rect x="1" y="1" width="26" height="26" rx="7" fill="var(--accent)"/>
+              <path d="M8 19.5 L14 8.5 L20 19.5" fill="none" stroke="var(--bg)" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2.6 3.4"/>
+              <circle cx="8" cy="19.5" r="2.1" fill="var(--bg)"/>
+              <circle cx="14" cy="8.5" r="2.1" fill="var(--bg)"/>
+              <circle cx="20" cy="19.5" r="2.1" fill="var(--bg)"/>
+            </svg>
+            <span class="logo-text">Nooj<span class="logo-dot">.</span>Log</span>
+          </a>
+          <p>代码与生活，皆有迹可循。记录开发踩坑、项目实践，以及日常里所有折腾与细碎生活。</p>
+        </div>
+        <div class="footer-col">
+          <h4>分类</h4>
+          <ul>
+            <li><a href="../posts.html?cat=dev">开发折腾</a></li>
+            <li><a href="../posts.html?cat=project">项目展示</a></li>
+            <li><a href="../posts.html?cat=life">生活日常</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>站点</h4>
+          <ul>
+            <li><a href="../posts.html">文章归档</a></li>
+            <li><a href="../notes.html">说说</a></li>
+            <li><a href="../projects.html">项目展示</a></li>
+            <li><a href="../about.html">关于我</a></li>
+            <li><a href="../rss.xml">RSS 订阅</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span class="mono">© <span data-year>2026</span> Nooj Log · nooj.cn</span>
+        <span class="mono">手写于 HTML + CSS + 一点点 JS · 0 个追踪器</span>
+      </div>
+    </div>
+  </footer>
+
+  <button class="back-top" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 19 V5"/><path d="M5 12 L12 5 L19 12"/>
+    </svg>
+  </button>
+  <script src="../assets/js/main.js"></script>
+  <script>window.__POST__ = {"id":"dark-mode-night","title":"给博客加上深色模式的那个晚上","cat":"dev","date":"2026-08-30","read":6,"tags":["CSS","主题","细节"],"excerpt":"从 prefers-color-scheme 到手动切换，从 CSS 变量重构到消灭首屏闪白——一次完整的主题切换实践。"};</script>
+  <script src="../assets/js/post.js"></script>
+</body>
+</html>

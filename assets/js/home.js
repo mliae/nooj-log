@@ -42,7 +42,7 @@
           '<span class="chip chip-' + catCls(p.cat) + '">' + catLabel(p.cat) + '</span>' +
           '<time class="mono" datetime="' + p.date + '">' + p.date + '</time>' +
         '</div>' +
-        '<h3><a href="post.html?id=' + encodeURIComponent(p.id) + '">' + esc(p.title) + '</a></h3>' +
+        '<h3><a href="posts/' + encodeURIComponent(p.id) + '.html">' + esc(p.title) + '</a></h3>' +
         '<p class="excerpt">' + esc(p.excerpt) + '</p>' +
         '<div class="card-meta mono">' +
           '<span>' + p.read + ' min read</span><span>·</span>' +

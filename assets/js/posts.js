@@ -61,7 +61,7 @@
         return '<li class="post-row">' +
           '<time class="mono" datetime="' + p.date + '">' + p.date + '</time>' +
           '<div class="row-main">' +
-            '<h3><a href="post.html?id=' + encodeURIComponent(p.id) + '">' + esc(p.title) + '</a></h3>' +
+            '<h3><a href="posts/' + encodeURIComponent(p.id) + '.html">' + esc(p.title) + '</a></h3>' +
             '<p class="row-excerpt">' + esc(p.excerpt) + '</p>' +
             '<div class="row-tags">' +
               '<span class="chip chip-' + catCls(p.cat) + '">' + catLabel(p.cat) + '</span>' +

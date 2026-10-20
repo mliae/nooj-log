@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>从零搭建 Nooj Log：一个极简静态博客的诞生 — Nooj Log</title>
+  <meta name="description" content="为什么最终没有选任何框架——以及这个用 HTML + CSS + 一点点 JS 手写出来的博客，是如何兼顾清爽与体感的。">
+  <meta property="og:title" content="从零搭建 Nooj Log：一个极简静态博客的诞生">
+  <meta property="og:description" content="为什么最终没有选任何框架——以及这个用 HTML + CSS + 一点点 JS 手写出来的博客，是如何兼顾清爽与体感的。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://i.ymao.me/posts/nooj-log-static-blog.html">
+  <meta property="article:published_time" content="2026-10-05">
+  <link rel="canonical" href="https://i.ymao.me/posts/nooj-log-static-blog.html">
+  <meta name="theme-color" content="#FAF9F5">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="alternate" type="application/rss+xml" title="Nooj Log" href="../rss.xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/base.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("nooj-theme");
+        if (!t) t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", t);
+        document.documentElement.classList.add("js");
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+
+  <div class="read-progress" id="read-progress" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="logo" href="../index.html" aria-label="Nooj Log 首页">
+        <svg class="logo-mark" viewBox="0 0 28 28" aria-hidden="true">
+          <rect x="1" y="1" width="26" height="26" rx="7" fill="var(--accent)"/>
+          <path d="M8 19.5 L14 8.5 L20 19.5" fill="none" stroke="var(--bg)" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2.6 3.4"/>
+          <circle cx="8" cy="19.5" r="2.1" fill="var(--bg)"/>
+          <circle cx="14" cy="8.5" r="2.1" fill="var(--bg)"/>
+          <circle cx="20" cy="19.5" r="2.1" fill="var(--bg)"/>
+        </svg>
+        <span class="logo-text">Nooj<span class="logo-dot">.</span>Log</span>
+      </a>
+      <nav class="site-nav" aria-label="主导航">
+        <a href="../index.html">首页</a>
+        <a href="../posts.html">文章</a>
+        <a href="../notes.html">说说</a>
+        <a href="../projects.html">项目</a>
+        <a href="../about.html">关于</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-btn theme-toggle" type="button" aria-label="切换到深色模式" aria-pressed="false">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+          </svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+          </svg>
+        </button>
+        <button class="icon-btn nav-toggle" type="button" aria-label="打开菜单" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <article class="post-article">
+      <div class="container">
+        <!-- 文章头部（由 post.js 填充） -->
+        <header class="post-header" id="post-header"><a class="back-link" href="../posts.html">← 返回文章列表</a><span class="chip chip-project">项目展示</span><h1>从零搭建 Nooj Log：一个极简静态博客的诞生</h1><div class="post-meta mono"><time datetime="2026-10-05">2026-10-05</time><span class="sep">/</span><span>10 min read</span><span class="sep">/</span><span class="tags"><span class="tag">#博客</span><span class="tag">#静态站点</span><span class="tag">#工程实践</span></span></div><p class="post-lede">为什么最终没有选任何框架——以及这个用 HTML + CSS + 一点点 JS 手写出来的博客，是如何兼顾清爽与体感的。</p></header>
+
+        <!-- 正文 + 目录 -->
+        <div class="post-body-grid">
+          <div class="post-content" id="post-content">
+<h2 id="sec-1">动机<a class="anchor" href="#sec-1" aria-hidden="true">#</a></h2>
+<p>折腾过太多博客系统：Hexo、Hugo、Notion 派生方案，每一个都很强大，每一个也都在「写一篇 800 字的随笔」和「跑一遍构建流水线」之间横亘着越来越长的距离。我想要的其实很简单：打开编辑器，写，保存，刷新，发布。</p>
+<p>于是有了 Nooj Log——你现在看到的这个站点。零依赖、零构建、零追踪器，三个 HTML 加一份 CSS，一把 JS。</p>
+<h2 id="sec-2">架构决策<a class="anchor" href="#sec-2" aria-hidden="true">#</a></h2>
+<ul>
+<li><strong>形态</strong>：纯静态多页站点，不做 SPA。文章详情页通过 <code>?id=</code> 从数据层读取，省掉构建步骤，也保留分享链接的能力。</li>
+<li><strong>分层</strong>：数据层（data.js）与视图层（各页面 js）分离，新增文章只动数据文件，不动结构。</li>
+<li><strong>设计系统</strong>：tokens.css 集中管理颜色、字阶、间距、动效，暗色模式只覆盖语义变量，组件零改动。</li>
+</ul>
+<h2 id="sec-3">目录结构<a class="anchor" href="#sec-3" aria-hidden="true">#</a></h2>
+<div class="code-block"><div class="code-head"><span>text</span><button class="copy-btn" type="button">复制</button></div><pre><code>nooj-log/
+├── index.html        <span class="tok-com"># 首页：hero + 分类 + 最新文章 + 项目 + 近况</span>
+├── posts.html        <span class="tok-com"># 文章归档：分类筛选 + 搜索</span>
+├── post.html         <span class="tok-com"># 文章详情：目录 + 阅读进度 + 上下篇</span>
+├── projects.html     <span class="tok-com"># 项目展示</span>
+├── about.html        <span class="tok-com"># 关于</span>
+└── assets/
+    ├── css/          <span class="tok-com"># tokens / base / components 三层</span>
+    └── js/           <span class="tok-com"># data / main / home / posts / post</span></code></pre></div>
+<h2 id="sec-4">设计上的几个取舍<a class="anchor" href="#sec-4" aria-hidden="true">#</a></h2>
+<p>清爽不等于性冷淡。暖纸白的底、墨绿的主色、衬线的中文大标题，再让等宽字体去承担日期、标签、目录这些「开发者气质」的信息——这是「代码与生活」在视觉上的对位。</p>
+<p>全站的母题是「迹」：hero 里点阵淡出、区块间的虚线分隔、线上的菱形结点、终端卡片里的 git 提交图，甚至列表符号都是菱形。slogan 里那个「迹」字，底下也压了一条点线下划。</p>
+<h2 id="sec-5">部署<a class="anchor" href="#sec-5" aria-hidden="true">#</a></h2>
+<p>整个目录传到任何静态托管（或一台 Nginx）上就完成了，域名指向 <code>nooj.cn</code>。没有 CI、没有 hook，git push 之后手动 sync，痛快。</p>
+<h2 id="sec-6">路线图<a class="anchor" href="#sec-6" aria-hidden="true">#</a></h2>
+<ul>
+<li>RSS 已就位（页脚入口）</li>
+<li>评论系统：倾向自建一个基于 issue 的轻方案，再议</li>
+<li>暗色模式的对比度细节，随文章增加持续打磨</li>
+</ul></div>
+          <aside class="post-toc" id="post-toc" aria-label="文章目录">
+            <p class="toc-title mono">目录 / CONTENTS</p>
+            <nav class="toc-list" id="toc-list"><a class="lv2" href="#sec-1">动机</a><a class="lv2" href="#sec-2">架构决策</a><a class="lv2" href="#sec-3">目录结构</a><a class="lv2" href="#sec-4">设计上的几个取舍</a><a class="lv2" href="#sec-5">部署</a><a class="lv2" href="#sec-6">路线图</a></nav>
+          </aside>
+        </div>
+
+        <!-- 上下篇 + 文末 -->
+        <footer class="post-footer">
+          <nav class="post-nav" id="post-nav" aria-label="上一篇 / 下一篇"><a href="../posts/css-container-queries.html"><span class="nav-label">← 上一篇（更早）</span><span class="nav-title">CSS 容器查询实战：让卡片布局真正「响应式」</span></a><a class="next" href="../posts/docker-timezone-ghost-bug.html"><span class="nav-label">下一篇（更新）→</span><span class="nav-title">记一次由 Docker 时区引发的「幽灵 Bug」</span></a></nav>
+          <p class="post-note" id="post-note"><strong>本文写于 2026-10-05</strong> · 归类于「项目展示」 · 如果这篇记录帮到了你，或者发现有说得不对的地方，欢迎来信聊聊 ——  <a href="../about.html">关于我 →</a></p>
+        </footer>
+
+        <!-- 评论区（Giscus，未配置时显示降级提示） -->
+        <section class="giscus-section" aria-label="评论区">
+          <h2 class="giscus-title">评论 / COMMENTS</h2>
+          <div id="giscus"></div>
+        </section>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <a class="logo" href="../index.html" aria-label="Nooj Log 首页">
+            <svg class="logo-mark" viewBox="0 0 28 28" aria-hidden="true">
+              <rect x="1" y="1" width="26" height="26" rx="7" fill="var(--accent)"/>
+              <path d="M8 19.5 L14 8.5 L20 19.5" fill="none" stroke="var(--bg)" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2.6 3.4"/>
+              <circle cx="8" cy="19.5" r="2.1" fill="var(--bg)"/>
+              <circle cx="14" cy="8.5" r="2.1" fill="var(--bg)"/>
+              <circle cx="20" cy="19.5" r="2.1" fill="var(--bg)"/>
+            </svg>
+            <span class="logo-text">Nooj<span class="logo-dot">.</span>Log</span>
+          </a>
+          <p>代码与生活，皆有迹可循。记录开发踩坑、项目实践，以及日常里所有折腾与细碎生活。</p>
+        </div>
+        <div class="footer-col">
+          <h4>分类</h4>
+          <ul>
+            <li><a href="../posts.html?cat=dev">开发折腾</a></li>
+            <li><a href="../posts.html?cat=project">项目展示</a></li>
+            <li><a href="../posts.html?cat=life">生活日常</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>站点</h4>
+          <ul>
+            <li><a href="../posts.html">文章归档</a></li>
+            <li><a href="../notes.html">说说</a></li>
+            <li><a href="../projects.html">项目展示</a></li>
+            <li><a href="../about.html">关于我</a></li>
+            <li><a href="../rss.xml">RSS 订阅</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span class="mono">© <span data-year>2026</span> Nooj Log · nooj.cn</span>
+        <span class="mono">手写于 HTML + CSS + 一点点 JS · 0 个追踪器</span>
+      </div>
+    </div>
+  </footer>
+
+  <button class="back-top" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 19 V5"/><path d="M5 12 L12 5 L19 12"/>
+    </svg>
+  </button>
+  <script src="../assets/js/main.js"></script>
+  <script>window.__POST__ = {"id":"nooj-log-static-blog","title":"从零搭建 Nooj Log：一个极简静态博客的诞生","cat":"project","date":"2026-10-05","read":10,"tags":["博客","静态站点","工程实践"],"excerpt":"为什么最终没有选任何框架——以及这个用 HTML + CSS + 一点点 JS 手写出来的博客，是如何兼顾清爽与体感的。"};</script>
+  <script src="../assets/js/post.js"></script>
+</body>
+</html>

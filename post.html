@@ -9,9 +9,20 @@
   <meta property="og:description" content="代码与生活，皆有迹可循。">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://nooj.cn/post.html">
+  <meta name="robots" content="noindex, follow">
   <meta name="theme-color" content="#FAF9F5">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="alternate" type="application/rss+xml" title="Nooj Log" href="rss.xml">
+  <!-- legacy-redirect: 旧链接 post.html?id=xxx 就地转成静态地址，构建时会被剥掉 -->
+  <script>
+    (function () {
+      var m = /[?&]id=([^&]+)/.exec(location.search);
+      if (!m) return;
+      var id;
+      try { id = decodeURIComponent(m[1]); } catch (e) { id = m[1]; }
+      location.replace("posts/" + encodeURIComponent(id) + ".html" + location.hash);
+    })();
+  </script>
   <link rel="stylesheet" href="assets/css/tokens.css">
   <link rel="stylesheet" href="assets/css/base.css">
   <link rel="stylesheet" href="assets/css/components.css">
