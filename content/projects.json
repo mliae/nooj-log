@@ -35,6 +35,21 @@
         "SVG"
       ],
       "featured": false
+    },
+    {
+      "id": "music-api",
+      "name": "music-api — 中央音乐解析服务",
+      "tagline": "一个部署在 Cloudflare Workers 上的音乐解析与曲库中心：聚合搜索五平台歌曲、解析试听/下载入库到 R2，通过 ApiKey 授权给多个前端项目使用，并提供 Web 后台管理曲库。",
+      "desc": "五平台聚合搜索 — 网易云 / QQ / 酷狗 / 酷我 / 汽水，一次关键词返回全部结果\n歌曲解析入库 — 解析真实音频地址，下载音频 + 封面 + 歌词转存到 R2，彻底摆脱源站限制；也支持本地上传、网络地址转存\n多对多标签（歌单） — 一首歌可属于多个标签，标签即歌单，可重命名、删除、复制歌单地址\nApiKey 授权 — 一项目一 Key，随时启用/停用，消费方凭 X-Api-Key 调用写接口\nWeb 后台 — 密码登录、曲库管理、标签管理、Key 管理、R2 自定义域名等设置",
+      "tech": [
+        "Cloudflare Workers",
+        "D1 (SQLite)",
+        "R2",
+        "Workers Assets"
+      ],
+      "featured": true,
+      "repo": "https://music-api.237333536.workers.dev/admin",
+      "demo": "https://music-api.237333536.workers.dev"
     }
   ]
 }
