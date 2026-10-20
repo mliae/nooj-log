@@ -8,6 +8,6 @@
     "测试"
   ],
   "excerpt": "测试文章  测试文章标题",
-  "content": "测试文章标题测试文章标题测试文章标题测试文章标题测试文章标题测试文章标题",
-  "md": "测试文章标题测试文章标题测试文章标题测试文章标题测试文章标题测试文章标题"
+  "md": "测试文章标题测试文章标题测试文章标题测试文章标题测试文章标题测试文章标题\n\n!song(t21|不如回家陪我妈|高可意)\n",
+  "content": "<p>测试文章标题测试文章标题测试文章标题测试文章标题测试文章标题测试文章标题</p>\n<div class=\"psong\" data-song=\"t21\" data-name=\"不如回家陪我妈\" data-artist=\"高可意\"><span class=\"psong__cover\" aria-hidden=\"true\">♪</span><span class=\"psong__meta\"><strong>不如回家陪我妈</strong><em>高可意</em></span><button class=\"psong__btn\" type=\"button\" aria-label=\"播放 不如回家陪我妈\"></button></div>\n"
 }
