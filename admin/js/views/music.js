@@ -11,6 +11,7 @@
 
 import { h, icon, toast } from "../util.js";
 import * as api from "../api.js";
+import * as auth from "../auth.js";
 
 const LS_KEY = "nooj_music_key";
 const DEFAULTS = { api: "https://music.jxe.me", tag: "blog" };
@@ -49,29 +50,34 @@ export async function renderMusic(container, ctx) {
 
   const apiBase = () => String(cfg.api || "").replace(/\/+$/, "");
 
+  /* music-api 的 /api/* 没有 CORS，浏览器只能走同源代理 /api/music 转发 */
   async function musicReq(path, { method = "GET", body } = {}) {
     if (!apiBase()) throw new Error("请先填写音乐服务地址");
-    const headers = {};
-    if (key) headers["X-Api-Key"] = key;
-    if (body) headers["Content-Type"] = "application/json";
+    if (!key) throw new Error("还没有填写 ApiKey：在 music-api 后台「Key 管理」创建一个，填到上面并保存");
+    const headers = { "Content-Type": "application/json", "X-Api-Key": key };
+    const token = auth.getToken && auth.getToken();
+    if (auth.getMode() === "github" && token) headers.Authorization = "Bearer " + token;
+
     let res;
     try {
-      res = await fetch(apiBase() + path, {
-        method,
+      res = await fetch("/api/music", {
+        method: "POST",
+        credentials: "same-origin",
         headers,
-        body: body ? JSON.stringify(body) : undefined
+        body: JSON.stringify({ path, method, body })
       });
     } catch (e) {
-      const err = new Error("无法连接音乐服务（网络或 CORS 拦截）");
-      err.hint = "请确认地址可访问；浏览器控制台如有 CORS 报错，检查 music-api 的跨域配置";
-      throw err;
+      throw new Error("代理请求失败（网络异常）");
     }
     const data = await res.json().catch(() => null);
-    if (!res.ok || (data && typeof data.code === "number" && data.code !== 0)) {
-      const msg = (data && (data.message || data.error)) || res.status + " 请求失败";
-      const err = new Error(msg);
-      if (res.status === 401 || res.status === 403) err.hint = "鉴权失败：请检查 ApiKey 是否正确、且在 music-api 后台处于启用状态";
+    if (!res.ok) {
+      const err = new Error((data && (data.error || data.message)) || res.status + " 请求失败");
+      if (data && data.code === "no_music_api") err.hint = "刚改完服务地址的话，等几秒再刷新（代理读取的是仓库里的 content/music.json）";
+      if (res.status === 401) err.hint = "鉴权失败：检查 ApiKey 是否启用；若是刚改完配置，等几秒重试";
       throw err;
+    }
+    if (data && typeof data.code === "number" && data.code !== 0) {
+      throw new Error(data.message || "音乐服务返回错误");
     }
     return data && data.data !== undefined ? data.data : data;
   }
