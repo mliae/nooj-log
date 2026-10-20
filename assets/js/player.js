@@ -15,6 +15,10 @@
 (function () {
   "use strict";
 
+  /* 软导航下本脚本可能被再次请求：只允许实例化一次，否则会出现两路声音 */
+  if (window.__noojPlayer) return;
+  window.__noojPlayer = true;
+
   var script = document.currentScript;
   if (!script) return;
   var BASE = script.src.replace(/assets\/js\/player\.js.*$/, "");

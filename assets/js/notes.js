@@ -233,7 +233,7 @@
   lightbox && lightbox.addEventListener("click", closeLightbox);
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") closeLightbox();
-  });
+  }, { signal: window.noojSignal });
 
   /* ---------- 锚点定位（分享单条说说） ---------- */
   function jumpToHash() {
@@ -248,7 +248,7 @@
       window.scrollTo({ top: top, behavior: "smooth" });
     }, 80);
   }
-  window.addEventListener("hashchange", jumpToHash);
+  window.addEventListener("hashchange", jumpToHash, { signal: window.noojSignal });
 
   /* ---------- 启动 ---------- */
   window.NoojContent.load().then(function (D) {
