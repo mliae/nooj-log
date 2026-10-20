@@ -143,14 +143,19 @@ export async function musicReq(path, { method = "GET", body } = {}) {
   if (!res.ok) {
     const err = new Error((data && (data.error || data.message)) || res.status + " 请求失败");
     if (data && data.code === "no_music_api") err.hint = "刚改完服务地址的话，点「发布」并等构建完成再试";
-    if (res.status === 401 && !(data && data.code)) err.hint = "鉴权失败：检查 ApiKey 是否正确、在 music-api 后台处于启用状态";
+    if (res.status === 401 || (data && data.code === 401)) err.hint = "鉴权失败：检查 ApiKey 是否正确、在 music-api 后台处于启用状态";
     err.status = res.status;
     err.code = data && data.code;
     throw err;
   }
-  if (data && typeof data.code === "number" && data.code !== 0) {
-    const err = new Error(data.message || "音乐服务返回错误");
+  /* music-api 的 code 跟 HTTP 状态码走：成功是 code:200 + message:"ok"，
+     不是 0；只有 >=400 才是业务错误（401 = ApiKey 无效等） */
+  const upCode = data && typeof data.code === "number" ? data.code : 0;
+  if (upCode >= 400) {
+    const err = new Error(data.message || "音乐服务返回错误（" + upCode + "）");
     err.upstream = true;
+    err.code = upCode;
+    if (upCode === 401) err.hint = "鉴权失败：检查 ApiKey 是否正确、在 music-api 后台处于启用状态";
     throw err;
   }
   return data && data.data !== undefined ? data.data : data;
