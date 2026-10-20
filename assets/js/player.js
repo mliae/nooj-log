@@ -46,6 +46,7 @@
       cfg = await r.json();
     } catch (e) { return; }
     if (!cfg || !cfg.api) return;
+    if (cfg.enabled === false) return; /* 后台音乐开关：关 = 整站不挂播放器 */
 
     var api = String(cfg.api).replace(/\/+$/, "");
     var qs = cfg.tag ? "?tag=" + encodeURIComponent(cfg.tag) : "";

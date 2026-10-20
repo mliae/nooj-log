@@ -14,7 +14,7 @@ import * as api from "../api.js";
 import * as auth from "../auth.js";
 
 const LS_KEY = "nooj_music_key";
-const DEFAULTS = { api: "https://music.jxe.me", tag: "blog" };
+const DEFAULTS = { api: "https://music.jxe.me", tag: "blog", enabled: true };
 const SOURCES = [
   ["netease", "网易云"],
   ["qq", "QQ 音乐"],
@@ -58,16 +58,27 @@ export async function renderMusic(container, ctx) {
     const token = auth.getToken && auth.getToken();
     if (auth.getMode() === "github" && token) headers.Authorization = "Bearer " + token;
 
-    let res;
-    try {
-      res = await fetch("/api/music", {
-        method: "POST",
-        credentials: "same-origin",
-        headers,
-        body: JSON.stringify({ path, method, body })
-      });
-    } catch (e) {
-      throw new Error("代理请求失败（网络异常）");
+    let res = null;
+    let lastErr = null;
+    /* 网络偶发抖动自动重试一次 */
+    for (let attempt = 0; attempt < 2 && !res; attempt++) {
+      if (attempt) await new Promise((r) => setTimeout(r, 1200));
+      try {
+        res = await fetch("/api/music", {
+          method: "POST",
+          credentials: "same-origin",
+          headers,
+          body: JSON.stringify({ path, method, body })
+        });
+      } catch (e) {
+        lastErr = e;
+        res = null;
+      }
+    }
+    if (!res) {
+      const err = new Error("代理请求失败（网络异常，已自动重试仍未成功）");
+      err.hint = "多为边缘节点出站偶发抖动：稍等几秒再点一次「刷新」；若反复出现，重启浏览器或换网络试试";
+      throw err;
     }
     const data = await res.json().catch(() => null);
     if (!res.ok) {
@@ -99,6 +110,7 @@ export async function renderMusic(container, ctx) {
   const apiUrl = h("input", { class: "input input--mono", value: cfg.api, placeholder: "https://music.example.com" });
   const tagInput = h("input", { class: "input input--mono", value: cfg.tag, placeholder: "blog" });
   const keyInput = h("input", { class: "input input--mono", type: "password", value: "", placeholder: key ? "已保存到本机，留空则不修改" : "mk_…（搜索与入库需要）" });
+  const enabledCb = h("input", { type: "checkbox", checked: cfg.enabled !== false });
   const probe = h("p", { class: "hint" });
 
   async function doSave() {
@@ -111,7 +123,7 @@ export async function renderMusic(container, ctx) {
       keyInput.value = "";
       keyInput.placeholder = "已保存到本机，留空则不修改";
     }
-    cfg = { api: nextApi, tag: nextTag };
+    cfg = { api: nextApi, tag: nextTag, enabled: enabledCb.checked };
     const btn = saveBtn;
     btn.disabled = true;
     try {
@@ -157,10 +169,12 @@ export async function renderMusic(container, ctx) {
       field("服务地址", apiUrl),
       field("博客歌单标签", tagInput),
       field("ApiKey（仅存本机）", keyInput)),
+    h("div", { class: "formrow" },
+      h("label", { class: "switch" }, enabledCb, h("span", {}, "启用前台悬浮播放器（关闭后全站不显示）"))),
     probe,
     h("div", { class: "card__actions" }, testBtn, saveBtn),
     h("p", { class: "hint" },
-      "ApiKey 保存在当前浏览器的 localStorage 里，不写入公开仓库；保存配置会把服务地址与标签写入 content/music.json 并触发站点重建。")
+      "ApiKey 保存在当前浏览器的 localStorage 里，不写入公开仓库；保存配置会写入 content/music.json（暂存区），点右上「发布」后前台生效。")
   );
 
   /* ============================================================

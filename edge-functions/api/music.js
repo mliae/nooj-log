@@ -79,16 +79,25 @@ export async function onRequestPost(context) {
   const headers = { "X-Api-Key": apiKey };
   if (method === "POST") headers["Content-Type"] = "application/json";
 
-  let upstream;
-  try {
-    upstream = await fetch(base + path, {
-      method,
-      headers,
-      body: method === "POST" ? JSON.stringify(body.body || {}) : undefined,
-      signal: typeof AbortSignal !== "undefined" && AbortSignal.timeout ? AbortSignal.timeout(20000) : undefined
-    });
-  } catch (e) {
-    return json({ error: "音乐服务不可达：" + ((e && e.message) || "网络错误") }, 502);
+  let upstream = null;
+  let lastNetErr = null;
+  /* 边缘出站偶发抖动：失败自动重试一次 */
+  for (let attempt = 0; attempt < 2 && !upstream; attempt++) {
+    if (attempt) await new Promise((r) => setTimeout(r, 800));
+    try {
+      upstream = await fetch(base + path, {
+        method,
+        headers,
+        body: method === "POST" ? JSON.stringify(body.body || {}) : undefined,
+        signal: typeof AbortSignal !== "undefined" && AbortSignal.timeout ? AbortSignal.timeout(20000) : undefined
+      });
+    } catch (e) {
+      lastNetErr = e;
+      upstream = null;
+    }
+  }
+  if (!upstream) {
+    return json({ error: "音乐服务不可达（已重试）：" + ((lastNetErr && lastNetErr.message) || "网络错误") }, 502);
   }
 
   const text = await upstream.text();
