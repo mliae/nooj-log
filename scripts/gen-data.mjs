@@ -64,6 +64,16 @@ if (existsSync(postsDir)) {
 
 const projects = readJson("content/projects.json");
 
+/* ---------- 说说（碎片流，单文件数组） ----------
+   源即产物：前台直接读 content/notes.json。
+   这里只做两件事——滤掉标记为 draft 的条目（防手滑），
+   以及给出 file:// 预览用的回退数据。 */
+const notesRaw = readJson("content/notes.json");
+const notes = ((notesRaw && notesRaw.notes) || [])
+  .filter((n) => n && n.id && !n.draft)
+  .sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.id).localeCompare(String(a.id)));
+if (notesRaw) console.log("gen: content/notes.json  (%d notes)", notes.length);
+
 /* ---------- 2) 生成 assets/js/data.js（file:// 回退） ---------- */
 if (posts.length && projects) {
   const banner =
@@ -75,10 +85,11 @@ if (posts.length && projects) {
   const body =
     "window.NOOJ_DATA = {\n" +
     "  posts: " + JSON.stringify(posts, null, 2) + ",\n" +
-    "  projects: " + JSON.stringify(projects.projects, null, 2) + "\n" +
+    "  projects: " + JSON.stringify(projects.projects, null, 2) + ",\n" +
+    "  notes: " + JSON.stringify(notes, null, 2) + "\n" +
     "};\n";
   writeFileSync(join(ROOT, "assets/js/data.js"), banner + body, "utf8");
-  console.log("gen: assets/js/data.js  (posts: %d, projects: %d)", posts.length, projects.projects.length);
+  console.log("gen: assets/js/data.js  (posts: %d, projects: %d, notes: %d)", posts.length, projects.projects.length, notes.length);
 } else {
   console.log("skip: 数据不足，未生成 data.js");
 }
@@ -89,6 +100,7 @@ if (posts.length) {
   const staticPages = [
     { loc: SITE + "/", priority: "1.0" },
     { loc: SITE + "/posts.html", priority: "0.8" },
+    { loc: SITE + "/notes.html", priority: "0.7" },
     { loc: SITE + "/projects.html", priority: "0.7" },
     { loc: SITE + "/about.html", priority: "0.6" }
   ];

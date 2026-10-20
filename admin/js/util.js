@@ -189,6 +189,8 @@ export function icon(name, size = 16) {
     refresh: "M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5V5h-2.5",
     up: "M8 12.5v-9M4 7l4-4 4 4",
     down: "M8 3.5v9M4 9l4 4 4-4",
+    note: "M2.5 3.5h11v7h-5l-3 2.6V10.5h-3z",
+    pin: "M5.6 2.5h4.8l-.7 3.8 2.1 2.2H4.2l2.1-2.2zM8 8.5v5",
     lock: "M4 7V5a4 4 0 0 1 8 0v2M3 7h10v7H3z",
     logo: ""
   };

@@ -1,7 +1,8 @@
 /* ============================================================
    Nooj Log — 内容加载器（单一入口）
    优先级：
-   1) fetch content/posts.json + content/projects.json（线上唯一事实源）
+   1) fetch content/posts.json + content/projects.json + content/notes.json
+      （线上唯一事实源）
    2) 回退 window.NOOJ_DATA（assets/js/data.js，file:// 本地预览用）
    3) 两者皆败：toast 报错并返回空数据，页面不白屏
 
@@ -23,7 +24,7 @@
 
   function fromFallback() {
     var d = window.NOOJ_DATA || {};
-    return { posts: d.posts || [], projects: d.projects || [] };
+    return { posts: d.posts || [], projects: d.projects || [], notes: d.notes || [] };
   }
 
   function fetchJson(url) {
@@ -36,11 +37,18 @@
   function viaFetch() {
     /* file:// 协议下 fetch 必然失败，直接走回退，省一次报错 */
     if (location.protocol === "file:") return Promise.reject(new Error("file protocol"));
+    /* 说说单独 catch：这个文件缺失或损坏不应拖垮整站内容 */
+    var notesReq = fetchJson("content/notes.json").catch(function () { return null; });
     return Promise.all([
       fetchJson("content/posts.json"),
-      fetchJson("content/projects.json")
+      fetchJson("content/projects.json"),
+      notesReq
     ]).then(function (arr) {
-      return { posts: (arr[0] && arr[0].posts) || [], projects: (arr[1] && arr[1].projects) || [] };
+      return {
+        posts: (arr[0] && arr[0].posts) || [],
+        projects: (arr[1] && arr[1].projects) || [],
+        notes: (arr[2] && arr[2].notes) || []
+      };
     });
   }
 
@@ -56,7 +64,7 @@
           window.NoojToast.show("内容加载失败，请检查网络后刷新重试", "err");
         }
         console.error("[NoojContent]", err);
-        return { posts: [], projects: [] };
+        return { posts: [], projects: [], notes: [] };
       });
     return cached;
   }
@@ -90,6 +98,21 @@
     return posts.slice().sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
   }
 
+  /* 说说：置顶优先，其余按时间倒序 */
+  function sortNotes(notes) {
+    return notes.slice().sort(function (a, b) {
+      if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+      return String(b.date) < String(a.date) ? -1 : String(b.date) > String(a.date) ? 1 : 0;
+    });
+  }
+
+  /* "2026-10-20 22:10" → { y:"2026", m:"10", d:"20", hm:"22:10" } */
+  function noteParts(date) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})[ T]?(\d{2}:\d{2})?/.exec(String(date || ""));
+    if (!m) return { y: "", m: "", d: "", hm: "" };
+    return { y: m[1], m: m[2], d: m[3], hm: m[4] || "" };
+  }
+
   window.NoojContent = {
     load: load,
     CATS: CATS,
@@ -98,6 +121,8 @@
     getPost: getPost,
     getNeighbors: getNeighbors,
     tagList: tagList,
-    sortPosts: sortPosts
+    sortPosts: sortPosts,
+    sortNotes: sortNotes,
+    noteParts: noteParts
   };
 })();

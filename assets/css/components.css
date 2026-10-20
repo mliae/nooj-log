@@ -1261,3 +1261,246 @@ a.tag:hover, .tag:hover { color: var(--accent-strong); border-color: var(--accen
 .giscus-hint p:last-child { margin-bottom: 0; }
 .giscus-hint .sub { font-size: 0.8125rem; opacity: 0.85; }
 .giscus-frame { width: 100%; border: none; }
+
+/* ============================================================
+   11. 说说（notes.html）—— 时间线
+   左侧一条虚线穿过所有节点，呼应全站「迹」的点线母题
+   ============================================================ */
+.notes-timeline { margin: 0 0 var(--s5); }
+
+.note-group { margin: 0 0 var(--s4); }
+.note-group__head {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 20;
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  margin: 0 0 var(--s3);
+  padding: var(--s2) 0 var(--s2) 0;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: .14em;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(6px);
+}
+.note-group__n {
+  font-size: 10.5px;
+  letter-spacing: .08em;
+  opacity: .7;
+}
+
+.note-list {
+  position: relative;
+  margin: 0;
+  padding: 0 0 0 2px;
+  list-style: none;
+}
+/* 竖虚线：从首节点到末节点，不穿越两端 */
+.note-list::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 14px;
+  bottom: 10px;
+  border-left: 1px dashed var(--line-strong);
+}
+
+.note {
+  position: relative;
+  padding-left: 40px;
+  padding-bottom: var(--s4);
+}
+.note:last-child { padding-bottom: var(--s2); }
+
+/* 节点：白底圆环 + 中心菱形；hover / 锚点命中时点亮 */
+.note__dot {
+  position: absolute;
+  left: 0;
+  top: 3px;
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--bg);
+  transition: border-color var(--dur-fast) ease-out, background var(--dur-fast) ease-out;
+}
+.note__dot::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  background: var(--line-strong);
+  transform: rotate(45deg);
+  transition: background var(--dur-fast) ease-out;
+}
+.note:hover .note__dot { border-color: var(--accent); }
+.note:hover .note__dot::after { background: var(--accent); }
+
+.note__body {
+  margin: 0;
+  padding: var(--s2) var(--s3) var(--s3) 0;
+  border-radius: var(--radius-sm);
+  min-width: 0;
+}
+.note__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-bottom: var(--s1);
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+.note__pin {
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  letter-spacing: .06em;
+}
+
+.note__text { color: var(--ink-2); font-size: var(--fs-base); line-height: 1.85; }
+.note__text p { margin: 0 0 var(--s2); }
+.note__text p:last-child { margin-bottom: 0; }
+.note__text code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  font-family: var(--font-mono);
+  font-size: .9em;
+}
+.note__text a { color: var(--accent-strong); border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+.note__text a:hover { border-bottom-color: var(--accent); }
+
+.note__imgs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: var(--s2);
+  margin-top: var(--s3);
+}
+.note__imgs.is-single { grid-template-columns: minmax(0, 420px); }
+.note__img {
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+  overflow: hidden;
+  cursor: zoom-in;
+  aspect-ratio: 4 / 3;
+}
+.note__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.note__img:hover img { transform: scale(1.03); }
+
+.note__tags { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
+.tag--btn {
+  border: 1px dashed var(--line-strong);
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  transition: color var(--dur-fast), border-color var(--dur-fast), background var(--dur-fast);
+}
+.tag--btn:hover { color: var(--accent-strong); border-color: var(--accent); background: var(--accent-soft); }
+
+/* 锚点命中的单条说说 */
+.note.is-target .note__dot { border-color: var(--accent); background: var(--accent-soft); }
+.note.is-target .note__dot::after { background: var(--accent); }
+.note.is-target .note__body { background: var(--accent-soft); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent); }
+
+/* ---------- 图片灯箱 ---------- */
+.note-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  padding: var(--s5);
+  background: rgba(20, 19, 16, .82);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity var(--dur-fast) ease-out;
+  cursor: zoom-out;
+}
+.note-lightbox[hidden] { display: none; }
+.note-lightbox.in { opacity: 1; }
+.note-lightbox img {
+  max-width: min(1100px, 100%);
+  max-height: 100%;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-3);
+  object-fit: contain;
+}
+.note-lightbox__close {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, .35);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .1);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.note-lightbox__close:hover { background: rgba(255, 255, 255, .22); }
+
+/* ============================================================
+   12. 首页「最近说」紧凑列表
+   ============================================================ */
+.notes-mini {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.note-mini {
+  display: grid;
+  grid-template-columns: 128px 1fr 24px;
+  align-items: baseline;
+  gap: var(--s4);
+  padding: var(--s4) var(--s2);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  transition: background var(--dur-fast) ease-out;
+}
+.note-mini:last-child { border-bottom: 0; }
+.note-mini:hover { background: var(--surface); }
+.note-mini time { color: var(--muted); font-size: var(--fs-xs); letter-spacing: .06em; }
+.note-mini p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-md);
+  line-height: 1.7;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.note-mini .arr { color: var(--line-strong); transition: color var(--dur-fast), transform var(--dur-fast) var(--ease-out); }
+.note-mini:hover .arr { color: var(--accent); transform: translateX(4px); }
+
+@media (max-width: 860px) {
+  .note-group__head { position: static; backdrop-filter: none; background: none; }
+  .note-mini { grid-template-columns: 1fr 20px; gap: var(--s2) var(--s3); }
+  .note-mini time { grid-column: 1; }
+  .note-mini p { grid-column: 1; -webkit-line-clamp: 3; }
+  .note-mini .arr { grid-row: 1 / span 2; align-self: center; }
+}
+@media (max-width: 640px) {
+  .note { padding-left: 32px; }
+  .note-list::before { left: 10px; }
+  .note__dot { width: 21px; height: 21px; }
+  .note__imgs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .note__imgs.is-single { grid-template-columns: minmax(0, 1fr); }
+}

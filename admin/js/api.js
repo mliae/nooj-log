@@ -279,6 +279,24 @@ export async function writeProjects(list, sha, message) {
   return writeFile("content/projects.json", text, message || "project: 更新项目列表", sha);
 }
 
+/* ---------- 说说（单文件数组，一次读写） ---------- */
+export async function readNotes() {
+  try {
+    const { text, sha } = await readFile("content/notes.json");
+    const data = JSON.parse(text);
+    return { list: Array.isArray(data.notes) ? data.notes : [], sha };
+  } catch (e) {
+    /* 首次使用还没有这个文件：从空列表起步 */
+    if (e.status === 404) return { list: [], sha: null };
+    throw e;
+  }
+}
+
+export async function writeNotes(list, sha, message) {
+  const text = JSON.stringify({ notes: list }, null, 2) + "\n";
+  return writeFile("content/notes.json", text, message || "note: 更新说说", sha);
+}
+
 /* ---------- 媒体 ---------- */
 export async function listGitHubMedia(dir = "media/uploads") {
   try {

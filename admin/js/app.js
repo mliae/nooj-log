@@ -5,6 +5,7 @@
      #/posts            文章列表
      #/posts/new        写文章
      #/posts/<id>       编辑文章
+     #/notes            说说（碎片流）
      #/projects         项目管理
      #/media            媒体库
      #/settings         系统设置
@@ -16,6 +17,7 @@ import * as api from "./api.js";
 import { state, loadPosts } from "./store.js";
 import { renderPosts } from "./views/posts.js";
 import { renderEditor } from "./views/editor.js";
+import { renderNotes } from "./views/notes.js";
 import { renderProjects } from "./views/projects.js";
 import { renderMedia } from "./views/media.js";
 import { renderSettings } from "./views/settings.js";
@@ -199,6 +201,7 @@ function onLogout() {
 /* ---------- 外壳 ---------- */
 const NAV = [
   { id: "posts", href: "#/posts", label: "文章", icon: "edit" },
+  { id: "notes", href: "#/notes", label: "说说", icon: "note" },
   { id: "projects", href: "#/projects", label: "项目", icon: "grid" },
   { id: "media", href: "#/media", label: "媒体", icon: "image" },
   { id: "settings", href: "#/settings", label: "设置", icon: "gear" }
@@ -296,7 +299,7 @@ async function route() {
   if (!view) return;
 
   const section = parts[0];
-  if (!["posts", "projects", "media", "settings"].includes(section)) {
+  if (!["posts", "notes", "projects", "media", "settings"].includes(section)) {
     location.hash = "#/posts";
     return;
   }
@@ -313,6 +316,7 @@ async function route() {
     return;
   }
 
+  if (section === "notes") return renderNotes(view, { ...ctx, setTopbar });
   if (section === "projects") return renderProjects(view, { ...ctx, setTopbar });
   if (section === "media") return renderMedia(view, { ...ctx, setTopbar });
   if (section === "settings") return renderSettings(view, { ...ctx, setTopbar });

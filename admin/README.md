@@ -100,3 +100,14 @@ python -m http.server 8899
 | `POST /api/storage` | `edge-functions/api/storage.js` | 图床配置 + SigV4 预签名 / 列举 / 删除 |
 
 回归脚本：`.tmp-shots/run2.mjs`（二期 UI + 打桩接口）。
+
+## 三期：说说（碎片流）
+
+- **后台 `#/notes`**：上方一条快速输入（自动增高、Ctrl/⌘+Enter 发布、粘贴或拖拽传图、
+  标签空格/逗号分隔、可置顶），下方时间线卡片（置顶/编辑/复制链接/删除）
+- **数据源**：`content/notes.json` 单文件数组，源即产物（前台直接读）
+  - 未发出的内容只暂存在本机 localStorage（`nooj_note_draft`），不进仓库、不跨设备
+  - 每条字段：`id`（时间戳）、`date`（YYYY-MM-DD HH:mm）、`text`、`tags?`、`images?`、`pinned?`
+- **前台 `notes.html`**：按月分组的时间线（「迹」点线母题）、标签筛选 + 搜索、
+  图片灯箱、`notes.html#<id>` 可分享单条；首页「最近说」展示最新 5 条
+- 回归脚本：`.tmp-shots/run3.mjs`（前台 13 项 + 后台发布/编辑/置顶/删除 16 项）

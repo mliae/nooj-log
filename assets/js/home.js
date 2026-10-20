@@ -84,5 +84,30 @@
       }).join("");
       if (window.revealScan) window.revealScan(projWrap);
     }
+
+    /* ---------- 最近说（碎片流最新 5 条） ---------- */
+    var notesWrap = document.getElementById("latest-notes");
+    if (notesWrap) {
+      var NOTES = window.NoojContent.sortNotes(
+        (D.notes || []).filter(function (n) { return n && n.id && !n.draft; })
+      );
+      if (!NOTES.length) {
+        /* 还没有碎念时整块不出现，不留一个空抽屉 */
+        var sec = notesWrap.closest(".section");
+        if (sec) sec.remove();
+      } else {
+        notesWrap.innerHTML = NOTES.slice(0, 5).map(function (n) {
+          var p = window.NoojContent.noteParts(n.date);
+          var flat = String(n.text || "").replace(/\s*\n+\s*/g, " ").trim();
+          return '<a class="note-mini reveal" href="notes.html#' + encodeURIComponent(n.id) + '">' +
+            '<time class="mono" datetime="' + esc(String(n.date).replace(" ", "T")) + '">' +
+              p.m + "-" + p.d + " " + p.hm + "</time>" +
+            '<p>' + esc(flat) + "</p>" +
+            '<span class="arr" aria-hidden="true">→</span>' +
+          "</a>";
+        }).join("");
+        if (window.revealScan) window.revealScan(notesWrap);
+      }
+    }
   });
 })();
