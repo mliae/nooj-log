@@ -38,31 +38,56 @@
   if (document.readyState === "complete") setTimeout(start, 400);
   else window.addEventListener("load", function () { setTimeout(start, 400); });
 
+  var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+
+  /* 国内到 Cloudflare 偶发抖动：带退避重试 */
+  async function fetchJSON(url, tries) {
+    var lastErr = null;
+    for (var i = 0; i < tries; i++) {
+      if (i) await sleep(600 * i * 2);
+      try {
+        var r = await fetch(url);
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return await r.json();
+      } catch (e) { lastErr = e; }
+    }
+    throw lastErr || new Error("fetch failed");
+  }
+
   async function init() {
     var cfg;
     try {
-      var r = await fetch(BASE + "content/music.json");
-      if (!r.ok) return;
-      cfg = await r.json();
+      cfg = await fetchJSON(BASE + "content/music.json", 2);
     } catch (e) { return; }
     if (!cfg || !cfg.api) return;
     if (cfg.enabled === false) return; /* 后台音乐开关：关 = 整站不挂播放器 */
 
     var api = String(cfg.api).replace(/\/+$/, "");
     var qs = cfg.tag ? "?tag=" + encodeURIComponent(cfg.tag) : "";
-    var list;
+    var list = null;
     try {
-      var r2 = await fetch(api + "/playlist.json" + qs);
-      if (!r2.ok) return;
-      list = await r2.json();
-    } catch (e) { return; }
-    if (!Array.isArray(list)) return;
+      list = await fetchJSON(api + "/playlist.json" + qs, 3);
+    } catch (e) { list = null; }
+
+    /* 拉取失败时回落到上次成功缓存的歌单（7 天内有效） */
+    if (!Array.isArray(list) || !list.length) {
+      try {
+        var cached = JSON.parse(localStorage.getItem("nooj_playlist_cache") || "null");
+        if (cached && cached.list && cached.list.length && Date.now() - cached.t < 7 * 864e5) {
+          list = cached.list;
+        }
+      } catch (e) { /* 缓存坏了当没有 */ }
+      if (!list || !list.length) return;
+    } else {
+      try { localStorage.setItem("nooj_playlist_cache", JSON.stringify({ t: Date.now(), list: list })); } catch (e) { /* 忽略 */ }
+    }
+
     list = list.filter(function (s) { return s && s.url; });
     if (!list.length) return;
 
     st.list = list;
     st.index = 0;
-    build(api);
+    build();
   }
 
   /* ---------- UI ---------- */
