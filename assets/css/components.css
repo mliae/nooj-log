@@ -899,15 +899,16 @@ a.tag:hover, .tag:hover { color: var(--accent-strong); border-color: var(--accen
   color: var(--ink);
 }
 
+/* 三栏轴心：左右 1fr 占位，中间 760px 与 .post-header 完全同轴，目录挂在右留白 */
 .post-body-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 190px;
-  gap: calc(var(--s6) - var(--s1));
+  grid-template-columns: 1fr minmax(0, 760px) 1fr;
+  column-gap: var(--s5);
   align-items: start;
 }
 
 /* ---- 正文排版 ---- */
-.post-content { max-width: 720px; font-size: var(--fs-md); line-height: 1.9; }
+.post-content { grid-column: 2; max-width: 720px; font-size: var(--fs-md); line-height: 1.9; }
 .post-content > p { margin: 0 0 var(--s4); }
 .post-content h2 {
   font-size: var(--fs-xl);
@@ -1020,7 +1021,14 @@ a.tag:hover, .tag:hover { color: var(--accent-strong); border-color: var(--accen
 .tok-com { color: var(--tok-com); font-style: italic; }
 
 /* ---- 目录 ---- */
-.post-toc { position: sticky; top: calc(var(--header-h) + var(--s4)); }
+.post-toc {
+  grid-column: 3;
+  justify-self: start;
+  width: 100%;
+  max-width: 190px;
+  position: sticky;
+  top: calc(var(--header-h) + var(--s4));
+}
 .toc-title {
   margin: 0 0 var(--s3);
   padding-bottom: var(--s2);
@@ -1044,7 +1052,7 @@ a.tag:hover, .tag:hover { color: var(--accent-strong); border-color: var(--accen
 .toc-list .lv3 { padding-left: var(--s5); }
 
 /* ---- 文末 ---- */
-.post-footer { max-width: 920px; margin: var(--s6) auto 0; }
+.post-footer { max-width: 760px; margin: var(--s6) auto 0; }
 .post-nav {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1147,8 +1155,9 @@ a.tag:hover, .tag:hover { color: var(--accent-strong); border-color: var(--accen
    15. 响应式
    ============================================================ */
 @media (max-width: 1024px) {
-  .post-body-grid { grid-template-columns: 1fr; }
-  .post-toc { display: none; }
+  .post-body-grid { grid-template-columns: minmax(0, 1fr); }
+  .post-content { grid-column: 1; max-width: none; }
+  .post-toc { grid-column: 1; display: none; }
   .about-grid { grid-template-columns: 1fr; }
   .profile-card { position: static; }
 }
@@ -1240,7 +1249,7 @@ a.tag:hover, .tag:hover { color: var(--accent-strong); border-color: var(--accen
 /* ============================================================
    评论区（Giscus）—— 与正文共用「迹」的分隔语言
    ============================================================ */
-.giscus-section { margin-top: var(--s6); }
+.giscus-section { max-width: 760px; margin: var(--s6) auto 0; }
 .giscus-title {
   font-size: 0.9375rem;
   font-weight: 600;
