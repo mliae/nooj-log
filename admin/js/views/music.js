@@ -60,8 +60,15 @@ export async function renderMusic(container, ctx) {
     const nextTag = tagInput.value.trim() || "blog";
     if (!/^https?:\/\//.test(nextApi)) return toast("服务地址需以 http(s):// 开头", "error");
     if (keyInput.value.trim()) {
-      key = keyInput.value.trim();
-      music.setKey(key);
+      const clean = music.setKey(keyInput.value); /* setKey 内部会清洗 BOM/零宽/空白 */
+      if (keyInput.value !== clean && !clean) return toast("ApiKey 内容无效（清洗后为空），请检查粘贴内容", "error");
+      if (keyInput.value !== clean) toast("ApiKey 已自动清理不可见字符/空格", "ok");
+      const bad = music.asciiProblem(clean);
+      if (bad) {
+        toast("ApiKey 含有非 ASCII 字符（" + bad + "）：请只复制密钥本身，不要带上标签文字、全角空格或中文标点", "error", 8000);
+        return;
+      }
+      key = clean;
       keyInput.value = "";
       keyInput.placeholder = "已保存到本机，留空则不修改";
     }
@@ -119,7 +126,7 @@ export async function renderMusic(container, ctx) {
     probe,
     h("div", { class: "card__actions" }, testBtn, saveBtn),
     h("p", { class: "hint" },
-      "ApiKey 保存在当前浏览器的 localStorage 里，不写入公开仓库；保存配置会写入 content/music.json（暂存区），点右上「发布」后前台生效。")
+      "ApiKey 保存在当前浏览器的 localStorage 里，不写入公开仓库；保存配置会写入 content/music.json（暂存区），点右上「发布」后前台生效。粘贴时只复制密钥本身（mk_ 开头），不要带上「ApiKey」等标签文字或多余空格。")
   );
 
   /* ============================================================
