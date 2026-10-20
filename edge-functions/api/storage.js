@@ -397,8 +397,16 @@ export async function onRequestPost(context) {
 
     if (action === "save") {
       if (!user.canPush) return json({ error: "没有仓库写权限" }, 403);
-      const token = await serverToken(env);
-      if (!token) return json({ error: "服务端未配置仓库令牌" }, 503);
+      /* 服务端令牌优先；刚登录还没同步过来时，回落到浏览器持有的 OAuth 令牌
+         （能否写入由实际 PUT 自证，不额外放权） */
+      const bearer = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+      const token = (await serverToken(env)) || bearer;
+      if (!token) {
+        return json({
+          error: "服务端未配置仓库令牌：请用 GitHub 重新登录一次（会自动配置），或在「账号与安全」填入 GitHub Token",
+          code: "no_token"
+        }, 503);
+      }
 
       const c = body.config || {};
       if (!c.endpoint || !c.bucket || !c.accessKeyId) {

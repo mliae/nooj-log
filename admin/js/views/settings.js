@@ -57,7 +57,7 @@ export async function renderSettings(container, ctx) {
       }
       const pw = h("input", { class: "input", type: "password", placeholder: "新密码，至少 8 位", autocomplete: "new-password" });
       const pw2 = h("input", { class: "input", type: "password", placeholder: "再输入一次", autocomplete: "new-password" });
-      const pat = h("input", { class: "input input--mono", type: "password", placeholder: "github_pat_…（可选，已配环境变量则留空）" });
+      const pat = h("input", { class: "input input--mono", type: "password", placeholder: "github_pat_…（可选，留空则用当前 GitHub 授权）" });
       const btn = h("button", { class: "btn btn--primary", onclick: doSetup }, icon("lock", 15), h("span", {}, "创建密码"));
 
       async function doSetup() {
@@ -246,7 +246,11 @@ export async function renderSettings(container, ctx) {
         probe.textContent = r.ok ? "连接正常，桶可写可读。" : `连接失败（${r.status}）：${r.message}`;
         probe.className = r.ok ? "hint hint--ok" : "hint hint--err";
       } catch (e) {
-        probe.textContent = e.message || "测试失败";
+        if (e && e.code === "no_storage") {
+          probe.textContent = "还没有保存过图床配置：直接点「保存配置」，保存时会自动做一次连通性检查。";
+        } else {
+          probe.textContent = e.message || "测试失败";
+        }
         probe.className = "hint hint--err";
       } finally {
         testBtn.disabled = false;

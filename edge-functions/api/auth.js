@@ -107,20 +107,26 @@ async function unseal(env, purpose, box) {
 
 /* ---------- 仓库读写（用服务端令牌） ---------- */
 async function gh(path, token, opts) {
-  const res = await fetch(API + path, {
-    method: (opts && opts.method) || "GET",
-    headers: Object.assign(
-      {
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "nooj-log-admin"
-      },
-      token ? { Authorization: "Bearer " + token } : {},
-      opts && opts.body ? { "Content-Type": "application/json" } : {}
-    ),
-    body: opts && opts.body ? JSON.stringify(opts.body) : undefined,
-    cache: "no-store"
-  });
+  let res;
+  try {
+    res = await fetch(API + path, {
+      method: (opts && opts.method) || "GET",
+      headers: Object.assign(
+        {
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "nooj-log-admin"
+        },
+        token ? { Authorization: "Bearer " + token } : {},
+        opts && opts.body ? { "Content-Type": "application/json" } : {}
+      ),
+      body: opts && opts.body ? JSON.stringify(opts.body) : undefined,
+      cache: "no-store"
+    });
+  } catch (e) {
+    /* 边缘出站抖动：以 status 0 表示「没问到」，与真正的 401/403 区分开 */
+    return { ok: false, status: 0, data: null, netError: String(e && e.message || e) };
+  }
   const text = await res.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
@@ -230,7 +236,16 @@ async function ghIdentity(req, env) {
 
 async function currentUser(req, env) {
   const s = await readSession(env, cookieOf(req, COOKIE));
-  if (s) return { mode: "password", login: s.u || "admin", name: "管理员" };
+  if (s) {
+    /* 会话里带身份来源：OAuth 回调签发的是 github（含写权限），密码登录是 password */
+    const m = s.m === "github" ? "github" : "password";
+    return {
+      mode: m,
+      login: s.u || (m === "github" ? "github" : "admin"),
+      name: m === "github" ? "GitHub" : "管理员",
+      canPush: m === "github" ? true : undefined
+    };
+  }
   const g = await ghIdentity(req, env);
   if (g) return g;
   return null;
@@ -322,20 +337,24 @@ export async function onRequestPost(context) {
       if (existing) return json({ error: "密码已存在，请使用「修改密码」" }, 409);
 
       const pat = String(body.pat || "").trim();
-      if (pat) {
-        if (!token) {
-          /* 第一次配置：没有可用令牌时，先验证传入的 PAT 再写入 */
-          const check = await gh(`/repos/${repoOf(env).owner}/${repoOf(env).name}`, pat);
-          if (!check.ok || !(check.data.permissions && check.data.permissions.push)) {
-            return json({ error: "该 Token 无法读取仓库或没有写权限" }, 400);
-          }
-        }
-        if (!token || token !== pat) {
-          const box = await seal(env, "pat", { token: pat });
-          await writeRepoJson(env, pat, "admin/.pat.json", box, "admin: 配置服务端仓库令牌");
-        }
-      } else if (!token) {
+      const bearer = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+
+      /* 写仓库用的凭据：服务端已配置令牌 → 本次填入的 PAT → 浏览器持有的 OAuth token。
+         浏览器 token 有 repo 作用域，写不进去会报错，等于自证权限，无需先出站预检。 */
+      const writeToken = token || pat || bearer;
+      if (!writeToken) {
         return json({ error: "请填入具有 repo 写权限的 GitHub Token（密码登录需要服务端凭据）" }, 400);
+      }
+
+      /* 用户显式填了 PAT 时，先做一次轻量校验；网络抖动(status 0)不拦，交给写入动作自证 */
+      if (pat && !token) {
+        const check = await gh(`/repos/${repoOf(env).owner}/${repoOf(env).name}`, pat);
+        if (!check.ok && check.status !== 0) {
+          return json({ error: "该 Token 无法读取仓库或没有写权限" }, 400);
+        }
+        if (check.ok && !(check.data && check.data.permissions && check.data.permissions.push)) {
+          return json({ error: "该 Token 无法读取仓库或没有写权限" }, 400);
+        }
       }
 
       const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -348,8 +367,18 @@ export async function onRequestPost(context) {
         hash: await pbkdf2(password, salt, ITER),
         updatedAt: new Date().toISOString()
       };
-      const wt = token || String(body.pat || "");
-      await writeRepoJson(env, wt, "admin/.auth.json", record, "admin: 初始化管理员密码");
+
+      /* 需要长期保存的令牌：显式 PAT 优先，否则用当前登录的 OAuth token */
+      const toStore = pat || (token ? "" : bearer);
+      try {
+        if (toStore && toStore !== token) {
+          const box = await seal(env, "pat", { token: toStore });
+          await writeRepoJson(env, toStore, "admin/.pat.json", box, "admin: 配置服务端仓库令牌");
+        }
+        await writeRepoJson(env, writeToken, "admin/.auth.json", record, "admin: 初始化管理员密码");
+      } catch (e) {
+        return json({ error: "写入仓库失败：" + (e.message || "令牌可能没有写权限") + "。可稍后重试，或到「账号与安全」填入 GitHub Token。", code: "write_failed" }, 400);
+      }
       return json({ ok: true });
     }
 
@@ -379,11 +408,19 @@ export async function onRequestPost(context) {
       if (!pat) return json({ error: "Token 不能为空" }, 400);
       const { owner, name } = repoOf(env);
       const check = await gh(`/repos/${owner}/${name}`, pat);
-      if (!check.ok || !(check.data.permissions && check.data.permissions.push)) {
+      /* status 0 = 出站抖动，没问到不等于没权限；真写了才知道（写入失败会抛错） */
+      if (!check.ok && check.status !== 0) {
+        return json({ error: "该 Token 无法读取仓库或没有写权限" }, 400);
+      }
+      if (check.ok && !(check.data && check.data.permissions && check.data.permissions.push)) {
         return json({ error: "该 Token 无法读取仓库或没有写权限" }, 400);
       }
       const box = await seal(env, "pat", { token: pat });
-      await writeRepoJson(env, pat, "admin/.pat.json", box, "admin: 更新服务端仓库令牌");
+      try {
+        await writeRepoJson(env, pat, "admin/.pat.json", box, "admin: 更新服务端仓库令牌");
+      } catch (e) {
+        return json({ error: "写入失败：" + (e.message || "请检查 Token 权限") }, 400);
+      }
       return json({ ok: true });
     }
 

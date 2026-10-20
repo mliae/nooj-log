@@ -51,6 +51,81 @@ function htmlPage(title, detail, script) {
     "</html>";
 }
 
+/* ============================================================
+   服务端会话 / 仓库令牌（算法必须与 api/auth.js 完全一致）
+   ------------------------------------------------------------
+   为什么在这里做：
+     OAuth 刚换到 token，这一刻服务端是可信的，直接签发 HttpOnly
+     会话，后续 /api/auth、/api/storage 就不必每次出站请求
+     api.github.com 校验身份——EdgeOne 国内边缘到 GitHub 抖动频繁，
+     那种校验会表现成「刚授权就说过期」。
+   ============================================================ */
+function encStr(s) { return new TextEncoder().encode(s); }
+
+function b64urlOf(buf) {
+  var a = new Uint8Array(buf);
+  var bin = "";
+  for (var i = 0; i < a.length; i += 0x8000) bin += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000));
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function keyMaterial(env) {
+  return (env && (env.SESSION_SECRET || env.GITHUB_CLIENT_SECRET || env.GITHUB_TOKEN)) || "";
+}
+
+/* 与 auth.js signSession 一致：body = b64url(JSON)，签名对象是 body 字符串 */
+async function mintSession(env, payload) {
+  var m = keyMaterial(env);
+  if (!m) return "";
+  var key = await crypto.subtle.importKey("raw", encStr(m), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  var body = b64urlOf(encStr(JSON.stringify(payload)));
+  var sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, encStr(body)));
+  return body + "." + b64urlOf(sig);
+}
+
+async function sealPat(env, token) {
+  var m = keyMaterial(env);
+  if (!m) return null;
+  var base = await crypto.subtle.importKey("raw", encStr(m), "PBKDF2", false, ["deriveKey"]);
+  var key = await crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt: encStr("nooj|pat|v1"), iterations: 60000, hash: "SHA-256" },
+    base, { name: "AES-GCM", length: 256 }, false, ["encrypt"]
+  );
+  var iv = crypto.getRandomValues(new Uint8Array(12));
+  var data = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, encStr(JSON.stringify({ token: token })));
+  return { v: 1, iv: b64urlOf(iv), data: b64urlOf(data) };
+}
+
+/* 顺手把服务端仓库令牌配好（已存在则跳过）：密码登录、图床保存都靠它 */
+async function ensureServerToken(env, token) {
+  var owner = (env && env.GITHUB_REPO_OWNER) || "mliae";
+  var name = (env && env.GITHUB_REPO_NAME) || "nooj-log";
+  var branch = (env && env.GITHUB_BRANCH) || "main";
+  var hdrs = {
+    "Accept": "application/vnd.github+json",
+    "Authorization": "Bearer " + token,
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "nooj-log-oauth-proxy"
+  };
+  try {
+    var cur = await fetch("https://api.github.com/repos/" + owner + "/" + name + "/contents/admin/.pat.json?ref=" + branch,
+      { headers: hdrs, cache: "no-store" });
+    if (cur.ok) return "exists";
+    if (cur.status !== 404) return "skip:" + cur.status;
+    var box = await sealPat(env, token);
+    if (!box) return "skip:no_secret";
+    var content = btoa(unescape(encodeURIComponent(JSON.stringify(box, null, 2) + "\n")));
+    var put = await fetch("https://api.github.com/repos/" + owner + "/" + name + "/contents/admin/.pat.json", {
+      method: "PUT",
+      headers: Object.assign({ "Content-Type": "application/json" }, hdrs),
+      body: JSON.stringify({ message: "admin: 登录时自动配置服务端仓库令牌", branch: branch, content: content })
+    });
+    return put.ok ? "written" : "failed:" + put.status;
+  } catch (e) {
+    return "error";
+  }
+}
+
 export async function onRequestGet(context) {
   var req = context.request;
   var env = context.env;
@@ -150,8 +225,26 @@ export async function onRequestGet(context) {
     "})();";
 
   var okHtml = htmlPage("授权成功", "正在返回 Nooj Log 后台…", okScript);
-  return new Response(okHtml, {
-    status: 200,
-    headers: { "Content-Type": "text/html; charset=utf-8", "Set-Cookie": clearCookie, "Cache-Control": "no-store" }
+
+  /* 固化服务端登录态：之后台内调用不再需要出站校验 GitHub */
+  var maxAge = 7 * 24 * 3600;
+  var sid = "";
+  try {
+    sid = await mintSession(env, { u: "github", m: "github", exp: Date.now() + maxAge * 1000 });
+  } catch (e) { sid = ""; }
+
+  /* 顺手把服务端仓库令牌存好（已存在则跳过），密码登录与图床保存要用 */
+  var patState = await ensureServerToken(env, token);
+
+  var headers = new Headers({
+    "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "no-store",
+    "X-Nooj-Token": String(patState || "")
   });
+  headers.append("Set-Cookie", clearCookie);
+  if (sid) {
+    headers.append("Set-Cookie",
+      "nooj_sid=" + encodeURIComponent(sid) + "; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=" + maxAge);
+  }
+  return new Response(okHtml, { status: 200, headers: headers });
 }

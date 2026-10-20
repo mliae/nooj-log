@@ -113,10 +113,13 @@ async function dataReq(payload) {
 }
 
 async function authReq(payload) {
+  const headers = { "Content-Type": "application/json" };
+  /* GitHub 登录态下服务端要靠 Bearer 认人；不带就会误报「未登录或登录已过期」 */
+  if (token) headers.Authorization = "Bearer " + token;
   const res = await fetch("/api/auth", {
     method: "POST",
     credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(payload),
     cache: "no-store"
   });
