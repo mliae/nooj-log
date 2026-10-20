@@ -7,6 +7,8 @@
 
 import { h, icon, iconBtn, toast, confirmDialog, emptyState, debounce } from "../util.js";
 import * as api from "../api.js";
+import { openMusicPicker } from "../music-picker.js";
+import { marker } from "../song-mark.js";
 
 const DRAFT_KEY = "nooj_note_draft";
 
@@ -54,6 +56,12 @@ export async function renderNotes(container, ctx) {
   const pickBtn = h("button", { class: "btn btn--ghost", onclick: () => fileIn.click() },
     icon("image", 15), h("span", {}, "图片"));
 
+  const musicBtn = h("button", {
+    class: "btn btn--ghost",
+    title: "插入一首歌（前台渲染成可点播的卡片）",
+    onclick: () => openMusicPicker({ onPick: (t) => insertMarker(marker(t)) })
+  }, icon("music", 15), h("span", {}, "音乐"));
+
   const titleEl = h("span", { class: "composer__title" }, "说点什么");
 
   const composer = h("section", { class: "composer" },
@@ -64,8 +72,9 @@ export async function renderNotes(container, ctx) {
     imgHost,
     h("div", { class: "composer__bar" },
       tagIn,
-      h("label", { class: "composer__check" }, pinChk, h("span", {}, "置顶")),
+      h("label", { class: "composer__check" },       pinChk, h("span", {}, "置顶")),
       pickBtn,
+      musicBtn,
       countEl,
       submitBtn,
       cancelBtn,
@@ -85,6 +94,23 @@ export async function renderNotes(container, ctx) {
   function autoGrow() {
     ta.style.height = "auto";
     ta.style.height = Math.min(Math.max(ta.scrollHeight, 84), 420) + "px";
+  }
+
+  /* 在光标处插入音乐标记，前后留空行让前台单独成卡片 */
+  function insertMarker(text) {
+    const v = ta.value;
+    const start = ta.selectionStart == null ? v.length : ta.selectionStart;
+    const end = ta.selectionEnd == null ? v.length : ta.selectionEnd;
+    const before = v.slice(0, start);
+    const after = v.slice(end);
+    const pre = !before ? "" : /\n\n$/.test(before) ? "" : /\n$/.test(before) ? "\n" : "\n\n";
+    const post = !after ? "\n\n" : /^\n\n/.test(after) ? "" : /^\n/.test(after) ? "\n" : "\n\n";
+    ta.value = before + pre + text + post + after;
+    const pos = (before + pre + text).length;
+    ta.focus();
+    ta.setSelectionRange(pos, pos);
+    ta.dispatchEvent(new Event("input")); /* 触发计数 / 自动增高 / 本地暂存 */
+    toast("已插入音乐，可继续写点别的", "ok", 2400);
   }
 
   const stashDraft = debounce(() => {
@@ -261,6 +287,10 @@ export async function renderNotes(container, ctx) {
 
     const sorted = sortNotes(list);
     sorted.forEach((n) => {
+      /* 列表预览里音乐标记显示成 ♪ 歌名；编辑时仍是原始标记 */
+      const previewText = String(n.text || "").replace(
+        /!song\(\s*[A-Za-z0-9_-]+\s*(?:\|([^|\n)]*)\|([^\n)]*))?\s*\)/g,
+        (m, name, artist) => "♪ " + (name || artist || "音乐"));
       listHost.append(
         h("article", { class: "ncard" + (n.pinned ? " is-pinned" : "") + (editing === n.id ? " is-editing" : "") },
           h("div", { class: "ncard__bar" },
@@ -271,7 +301,7 @@ export async function renderNotes(container, ctx) {
               iconBtn("link", "复制这条的链接", () => copyLink(n)),
               iconBtn("edit", "编辑", () => startEdit(n)),
               iconBtn("trash", "删除", () => removeNote(n), "icon-btn--danger"))),
-          h("p", { class: "ncard__text" }, n.text || ""),
+          h("p", { class: "ncard__text" }, previewText),
           (n.images || []).length
             ? h("div", { class: "ncard__imgs" },
                 ...n.images.map((src) => h("img", { src, alt: "", loading: "lazy" })))

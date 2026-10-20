@@ -6,7 +6,7 @@
 
 .music {
   position: fixed;
-  left: 18px;
+  right: 18px;
   bottom: 18px;
   z-index: 240;
   font-family: var(--font-sans);
@@ -74,6 +74,7 @@
   border: 1px solid var(--line);
   background: var(--bg-soft);
   flex: none;
+  cursor: pointer;
   animation: music-spin 14s linear infinite;
   animation-play-state: paused;
 }
@@ -174,7 +175,7 @@ li.is-active .music-panel__eq { display: inline-flex; }
 /* ---------- 歌单面板 ---------- */
 .music-panel {
   position: absolute;
-  left: 0;
+  right: 0;
   bottom: calc(100% + 10px);
   width: min(300px, calc(100vw - 36px));
   max-height: 320px;
@@ -254,6 +255,124 @@ li.is-active .music-panel__eq i:nth-child(3) { animation-delay: .5s; }
 li:not(.is-active) .music-panel__eq { display: none; }
 .music-panel__list li.is-active .music-panel__idx { color: var(--accent-strong); }
 
+/* ============================================================
+   正文 / 说说内嵌音乐卡片
+   markdown 源：!song(t22|歌名|歌手)  →  后台保存时展开成这段结构
+   点击后由 player.js 接管，复用全站悬浮播放器，不会出第二路声音
+   ============================================================ */
+.psong {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: var(--s4) 0;
+  padding: 9px 12px 9px 9px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+  transition: border-color var(--dur-fast) ease-out, box-shadow var(--dur-fast) ease-out;
+}
+.psong:hover { border-color: var(--line-strong); box-shadow: var(--shadow-2); }
+.psong.is-playing {
+  border-color: color-mix(in srgb, var(--accent) 38%, transparent);
+  background: color-mix(in srgb, var(--accent-soft) 34%, var(--surface));
+}
+
+.psong__cover {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
+  color: var(--accent);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  animation: music-spin 16s linear infinite;
+  animation-play-state: paused;
+}
+.psong.is-playing .psong__cover { animation-play-state: running; }
+.psong__cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.psong__meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.psong__meta strong {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.psong__meta em {
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.psong__btn {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  cursor: pointer;
+  transition: background var(--dur-fast) ease-out, color var(--dur-fast) ease-out;
+}
+.psong__btn:hover { background: var(--accent-strong); color: #fff; }
+.psong__btn::before {
+  content: "";
+  width: 0;
+  height: 0;
+  margin-left: 2px;
+  border-left: 7px solid currentColor;
+  border-top: 4.5px solid transparent;
+  border-bottom: 4.5px solid transparent;
+}
+.psong.is-playing .psong__btn::before {
+  margin-left: 0;
+  width: 8px;
+  height: 10px;
+  border: 0;
+  border-left: 2.5px solid currentColor;
+  border-right: 2.5px solid currentColor;
+}
+.psong.is-loading .psong__btn::before { animation: psong-pulse .7s ease-in-out infinite; }
+.psong.is-missing { opacity: .55; }
+.psong.is-missing .psong__btn { cursor: not-allowed; }
+.psong.is-missing .psong__btn::before { border-left-color: var(--muted); }
+
+@keyframes psong-pulse {
+  0%, 100% { opacity: .25; }
+  50%      { opacity: 1; }
+}
+
+@media (max-width: 640px) {
+  .psong { gap: 10px; padding: 8px 10px 8px 8px; }
+  .psong__cover { width: 38px; height: 38px; font-size: 15px; }
+  .psong__meta strong { font-size: var(--fs-xs); -webkit-line-clamp: 2; }
+}
+
 /* ---------- 动画 ---------- */
 @keyframes music-spin {
   from { transform: rotate(0deg); }
@@ -264,11 +383,15 @@ li:not(.is-active) .music-panel__eq { display: none; }
   50%      { height: 100%; }
 }
 
+/* 播放器在右下角时，把「回到顶部」按钮顶上去，避免重叠 */
+body.has-music .back-top { bottom: calc(var(--s4) + 58px); }
+
 /* ---------- 窄屏 ---------- */
 @media (max-width: 640px) {
-  .music { left: 12px; bottom: 12px; }
+  .music { right: 12px; bottom: 12px; }
   .music-fab { width: 46px; height: 46px; }
   .music-panel { bottom: calc(100% + 8px); }
+  body.has-music .back-top { bottom: calc(var(--s4) + 52px); }
 }
 
 /* 打印 / 减少动态 */

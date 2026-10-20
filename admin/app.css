@@ -1230,6 +1230,69 @@ button.chip { cursor: pointer; }
 }
 
 /* ============================================================
+   选歌弹窗（插入音乐）
+   ============================================================ */
+.dialog--picker {
+  width: min(560px, 100%);
+  max-height: 84vh;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px 16px;
+}
+.dialog--picker .dialog__body { margin-bottom: 10px; }
+.dialog--picker .dialog__actions { margin-top: 12px; }
+.picker { display: flex; flex-direction: column; min-height: 0; }
+.picker > .tabs { margin-bottom: 6px; width: fit-content; }
+.picker__pane { min-height: 0; overflow-y: auto; }
+.picker .music-lib { max-height: 46vh; margin-top: 4px; }
+.picker .music-row { cursor: pointer; }
+.picker .music-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.picker .formrow { gap: 8px; margin: 8px 0 0; }
+.picker .formrow .input { flex: 1; min-width: 0; }
+.music-search__group { display: flex; flex-direction: column; gap: 2px; }
+.music-search__group + .music-search__group { margin-top: 10px; }
+
+/* 音乐卡片（仅用于后台预览；前台样式在 assets/css/player.css） */
+.preview__body .psong {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  padding: 9px 12px 9px 9px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.preview__body .psong__cover {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--accent);
+}
+.preview__body .psong__meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.preview__body .psong__meta strong { font-size: var(--fs-sm); }
+.preview__body .psong__meta em {
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+.preview__body .psong__btn {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+/* ============================================================
    发布（暂存分支 → 主干）
    ============================================================ */
 .publish {

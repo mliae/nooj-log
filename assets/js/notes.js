@@ -26,17 +26,46 @@
       .replace(/"/g, "&quot;");
   }
 
-  /* 纯文本 → 安全 HTML：转义 → 反引号内联代码 → 链接 → 段落 */
+  /* 音乐标记：!song(t22|歌名|歌手)  与后台插入、文章正文用的是同一套语法 */
+  var SONG_RE = /!song\(\s*([A-Za-z0-9_-]+)\s*(?:\|([^|\n)]*)\|([^\n)]*))?\s*\)/g;
+  var PH = "\u0001";
+
+  function songCard(id, name, artist) {
+    name = name || "未命名";
+    artist = artist || "未知歌手";
+    return '<div class="psong" data-song="' + esc(id) + '" data-name="' + esc(name) + '" data-artist="' + esc(artist) + '">' +
+      '<span class="psong__cover" aria-hidden="true">♪</span>' +
+      '<span class="psong__meta"><strong>' + esc(name) + "</strong><em>" + esc(artist) + "</em></span>" +
+      '<button class="psong__btn" type="button" aria-label="播放 ' + esc(name) + '"></button>' +
+    "</div>";
+  }
+
+  /* 纯文本 → 安全 HTML：音乐标记 → 转义 → 反引号内联代码 → 链接 → 段落 */
   function richText(text) {
     var html = esc(text);
+    var cards = [];
+    html = html.replace(SONG_RE, function (m, id, name, artist) {
+      cards.push(songCard(id, name, artist));
+      return PH + (cards.length - 1) + PH;
+    });
     html = html.replace(/`([^`\n]+)`/g, "<code>$1</code>");
     html = html.replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)])/g, function (url) {
       return '<a href="' + url + '" target="_blank" rel="noopener">' + url + "</a>";
     });
+
+    function unph(block) {
+      return block.replace(new RegExp(PH + "(\\d+)" + PH, "g"), function (m, i) {
+        return cards[Number(i)] || "";
+      });
+    }
+
     var blocks = html.split(/\n{2,}/).filter(function (s) { return s.trim(); });
     if (!blocks.length) return "";
     return blocks.map(function (b) {
-      return "<p>" + b.replace(/\n/g, "<br>") + "</p>";
+      /* 整段只有一个标记 → 直接出卡片，不要套 <p> */
+      var only = b.trim();
+      if (new RegExp("^" + PH + "\\d+" + PH + "$").test(only)) return unph(only);
+      return "<p>" + unph(b.replace(/\n/g, "<br>")) + "</p>";
     }).join("");
   }
 
@@ -167,6 +196,7 @@
     }
 
     if (window.revealScan) window.revealScan(timeline);
+    if (window.noojWireSongs) window.noojWireSongs(); /* 音乐卡片接线 */
     jumpToHash();
   }
 

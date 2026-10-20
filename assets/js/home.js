@@ -98,7 +98,10 @@
       } else {
         notesWrap.innerHTML = NOTES.slice(0, 5).map(function (n) {
           var p = window.NoojContent.noteParts(n.date);
-          var flat = String(n.text || "").replace(/\s*\n+\s*/g, " ").trim();
+          var flat = String(n.text || "").replace(/\s*\n+\s*/g, " ").trim()
+            /* 音乐标记在摘要里显示成 ♪ 歌名，完整卡片在说说页 */
+            .replace(/!song\(\s*[A-Za-z0-9_-]+\s*(?:\|([^|\n)]*)\|([^\n)]*))?\s*\)/g,
+              function (m, name, artist) { return "♪ " + (name || artist || "音乐"); });
           return '<a class="note-mini reveal" href="notes.html#' + encodeURIComponent(n.id) + '">' +
             '<time class="mono" datetime="' + esc(String(n.date).replace(" ", "T")) + '">' +
               p.m + "-" + p.d + " " + p.hm + "</time>" +

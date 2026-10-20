@@ -2,19 +2,16 @@
    Nooj Log 后台 — 音乐管理
    ------------------------------------------------------------
    对接中央音乐解析服务（music-api，Cloudflare Workers）：
-     · 服务设置：API 地址 + 歌单标签 写入 content/music.json
-       （前台悬浮播放器据此拉取 {api}/playlist.json?tag=）
+     · 服务设置：API 地址 / 歌单标签 / 播放器开关 → content/music.json
      · 搜索入库：五平台聚合搜索 → 一键解析转存 R2
      · 中央曲库：勾选批量加入/移出博客歌单（标签即歌单）
    ApiKey 只存本机 localStorage，不进公开仓库。
+   请求统一走同源代理 /api/music（musicapi.js）。
    ============================================================ */
 
 import { h, icon, toast } from "../util.js";
-import * as api from "../api.js";
-import * as auth from "../auth.js";
+import * as music from "../musicapi.js";
 
-const LS_KEY = "nooj_music_key";
-const DEFAULTS = { api: "https://music.jxe.me", tag: "blog", enabled: true };
 const SOURCES = [
   ["netease", "网易云"],
   ["qq", "QQ 音乐"],
@@ -22,7 +19,6 @@ const SOURCES = [
   ["kuwo", "酷我"],
   ["qishui", "汽水"]
 ];
-const SOURCE_LABEL = Object.fromEntries(SOURCES);
 
 export async function renderMusic(container, ctx) {
   container.innerHTML = "";
@@ -33,65 +29,11 @@ export async function renderMusic(container, ctx) {
     h("button", { class: "btn btn--ghost", onclick: () => refreshAll() }, icon("refresh", 14), h("span", {}, "刷新"))
   ]);
 
-  /* ---------- 状态 ---------- */
-  let cfg = { ...DEFAULTS };
-  let cfgSha = null;
-  let key = localStorage.getItem(LS_KEY) || "";
-  let library = [];        /* 中央曲库 TrackJson[] */
-  let blogList = [];       /* 博客歌单 playlist.json */
+  const cfg = await music.getConfig();
+  let key = music.getKey();
+  let library = [];
+  let blogList = [];
   let checked = new Set();
-
-  try {
-    const { text, sha } = await api.readFile("content/music.json");
-    const data = JSON.parse(text);
-    cfg = { ...DEFAULTS, ...data };
-    cfgSha = sha;
-  } catch (e) { /* 首次使用：用默认值 */ }
-
-  const apiBase = () => String(cfg.api || "").replace(/\/+$/, "");
-
-  /* music-api 的 /api/* 没有 CORS，浏览器只能走同源代理 /api/music 转发 */
-  async function musicReq(path, { method = "GET", body } = {}) {
-    if (!apiBase()) throw new Error("请先填写音乐服务地址");
-    if (!key) throw new Error("还没有填写 ApiKey：在 music-api 后台「Key 管理」创建一个，填到上面并保存");
-    const headers = { "Content-Type": "application/json", "X-Api-Key": key };
-    const token = auth.getToken && auth.getToken();
-    if (auth.getMode() === "github" && token) headers.Authorization = "Bearer " + token;
-
-    let res = null;
-    let lastErr = null;
-    /* 网络偶发抖动自动重试一次 */
-    for (let attempt = 0; attempt < 2 && !res; attempt++) {
-      if (attempt) await new Promise((r) => setTimeout(r, 1200));
-      try {
-        res = await fetch("/api/music", {
-          method: "POST",
-          credentials: "same-origin",
-          headers,
-          body: JSON.stringify({ path, method, body })
-        });
-      } catch (e) {
-        lastErr = e;
-        res = null;
-      }
-    }
-    if (!res) {
-      const err = new Error("代理请求失败（网络异常，已自动重试仍未成功）");
-      err.hint = "多为边缘节点出站偶发抖动：稍等几秒再点一次「刷新」；若反复出现，重启浏览器或换网络试试";
-      throw err;
-    }
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      const err = new Error((data && (data.error || data.message)) || res.status + " 请求失败");
-      if (data && data.code === "no_music_api") err.hint = "刚改完服务地址的话，等几秒再刷新（代理读取的是仓库里的 content/music.json）";
-      if (res.status === 401) err.hint = "鉴权失败：检查 ApiKey 是否启用；若是刚改完配置，等几秒重试";
-      throw err;
-    }
-    if (data && typeof data.code === "number" && data.code !== 0) {
-      throw new Error(data.message || "音乐服务返回错误");
-    }
-    return data && data.data !== undefined ? data.data : data;
-  }
 
   /* ---------- 卡片骨架 ---------- */
   const setCard = h("section", { class: "card" });
@@ -119,25 +61,25 @@ export async function renderMusic(container, ctx) {
     if (!/^https?:\/\//.test(nextApi)) return toast("服务地址需以 http(s):// 开头", "error");
     if (keyInput.value.trim()) {
       key = keyInput.value.trim();
-      localStorage.setItem(LS_KEY, key);
+      music.setKey(key);
       keyInput.value = "";
       keyInput.placeholder = "已保存到本机，留空则不修改";
     }
-    cfg = { api: nextApi, tag: nextTag, enabled: enabledCb.checked };
-    const btn = saveBtn;
-    btn.disabled = true;
+    saveBtn.disabled = true;
+    saveBtn.querySelector("span").textContent = "保存中…";
     try {
-      const text = JSON.stringify({ ...cfg, updated: new Date().toISOString().slice(0, 10) }, null, 2) + "\n";
-      cfgSha = await api.writeFile(
-        "content/music.json", text,
-        "music: 更新音乐服务配置", cfgSha || undefined
-      );
+      await music.saveConfig({ api: nextApi, tag: nextTag, enabled: enabledCb.checked });
+      /* 保存后同步内存里的配置，后面的「加入歌单」用新 tag */
+      cfg.api = nextApi;
+      cfg.tag = nextTag;
+      cfg.enabled = enabledCb.checked;
       toast("已保存到暂存区，点右上「发布」后前台生效", "ok");
       await refreshBlogList();
     } catch (e) {
       toast(e.message || "保存失败", "error", 6000);
     } finally {
-      btn.disabled = false;
+      saveBtn.disabled = false;
+      saveBtn.querySelector("span").textContent = "保存配置";
     }
   }
 
@@ -145,9 +87,12 @@ export async function renderMusic(container, ctx) {
     probe.textContent = "正在连接…";
     probe.className = "hint";
     testBtn.disabled = true;
+    const nextApi = apiUrl.value.trim().replace(/\/+$/, "");
+    const nextTag = tagInput.value.trim();
     try {
-      const list = await fetch(apiBase() + "/playlist.json" + (cfg.tag ? "?tag=" + encodeURIComponent(cfg.tag) : ""))
-        .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
+      const r = await fetch(nextApi + "/playlist.json" + (nextTag ? "?tag=" + encodeURIComponent(nextTag) : ""));
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const list = await r.json();
       probe.textContent = "连接正常，博客歌单当前 " + (Array.isArray(list) ? list.length : 0) + " 首。";
       probe.className = "hint hint--ok";
     } catch (e) {
@@ -194,11 +139,11 @@ export async function renderMusic(container, ctx) {
     searchBtn.disabled = true;
     searchBox.innerHTML = '<p class="hint">正在搜索五平台…</p>';
     try {
-      const data = await musicReq("/api/search?kw=" + encodeURIComponent(kw));
+      const data = await music.search(kw);
       paintSearch(data || {});
     } catch (e) {
       searchBox.innerHTML = "";
-      searchBox.append(h("p", { class: "hint hint--err" }, e.hint ? e.message + " — " + e.hint : (e.message || "搜索失败")));
+      searchBox.append(h("p", { class: "hint hint--err" }, errText(e)));
     } finally {
       searchBtn.disabled = false;
     }
@@ -227,24 +172,12 @@ export async function renderMusic(container, ctx) {
       btn.disabled = true;
       btn.textContent = "入库中…";
       try {
-        const r = await musicReq("/api/ingest", {
-          method: "POST",
-          body: {
-            source: src,
-            id: hit.id ?? hit.songId,
-            title,
-            artist,
-            album: hit.album || "",
-            cover: hit.cover || hit.pic || "",
-            vip: !!hit.vip,
-            duration: hit.duration || 0
-          }
-        });
+        const r = await music.ingest({ ...hit, source: src });
         toast(r && r.duplicate ? "该歌曲已在曲库中" : "入库成功（音频/封面已转存）", "ok");
         btn.textContent = "已入库";
         await Promise.all([refreshLibrary(), refreshBlogList()]);
       } catch (e) {
-        toast(e.hint ? e.message + " — " + e.hint : (e.message || "入库失败"), "error", 6000);
+        toast(errText(e), "error", 6000);
         btn.disabled = false;
         btn.textContent = "入库";
       }
@@ -288,16 +221,16 @@ export async function renderMusic(container, ctx) {
     btns.forEach((b) => { b.disabled = true; });
     try {
       if (add) {
-        await musicReq("/api/library/tag", { method: "POST", body: { ids, tag: cfg.tag } });
+        await music.assignTag(ids, cfg.tag);
         toast("已把 " + ids.length + " 首加入「" + cfg.tag + "」", "ok");
       } else {
-        await musicReq("/api/tags/unassign", { method: "POST", body: { name: cfg.tag, ids } });
+        await music.unassignTag(ids, cfg.tag);
         toast("已移出 " + ids.length + " 首", "ok");
       }
       checked.clear();
       await Promise.all([refreshLibrary(), refreshBlogList()]);
     } catch (e) {
-      toast(e.hint ? e.message + " — " + e.hint : (e.message || "操作失败"), "error", 6000);
+      toast(errText(e), "error", 6000);
       btns.forEach((b) => { b.disabled = false; });
     }
   }
@@ -328,16 +261,13 @@ export async function renderMusic(container, ctx) {
   }
 
   async function refreshLibrary() {
-    if (!apiBase()) return;
     libBox.innerHTML = '<p class="hint">正在读取中央曲库…</p>';
     try {
-      const data = await musicReq("/api/library");
-      library = (data && data.list) || [];
+      library = await music.library();
       paintLibrary();
     } catch (e) {
       libBox.innerHTML = "";
-      libBox.append(h("p", { class: "hint hint--err" },
-        "曲库读取失败：" + (e.message || "") + (e.hint ? " — " + e.hint : "")));
+      libBox.append(h("p", { class: "hint hint--err" }, "曲库读取失败：" + errText(e)));
     }
   }
 
@@ -351,12 +281,7 @@ export async function renderMusic(container, ctx) {
   }
 
   async function refreshBlogList() {
-    if (!apiBase()) return;
-    try {
-      const list = await fetch(apiBase() + "/playlist.json" + (cfg.tag ? "?tag=" + encodeURIComponent(cfg.tag) : ""))
-        .then((r) => r.json());
-      blogList = Array.isArray(list) ? list : [];
-    } catch (e) { blogList = []; }
+    blogList = await music.blogPlaylist();
     paintLibHead();
   }
 
@@ -384,6 +309,10 @@ export async function renderMusic(container, ctx) {
     return h("div", { class: "formfield" },
       h("label", { class: "formfield__label" }, label),
       control);
+  }
+
+  function errText(e) {
+    return (e.hint ? e.message + " — " + e.hint : (e.message || "请求失败")) + (e.detail ? "（" + e.detail + "）" : "");
   }
 
   async function refreshAll() {
