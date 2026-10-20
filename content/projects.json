@@ -13,18 +13,6 @@
       "featured": true
     },
     {
-      "id": "cli-todo",
-      "name": "cli-todo",
-      "tagline": "住在终端里的待办工具",
-      "desc": "300 行 Node.js 代码、零运行时依赖的命令行待办。支持标签、今日视图、管道友好的纯文本输出，一条 add 命令即可记录念头，不让思路断掉。",
-      "tech": [
-        "Node.js",
-        "CLI",
-        "npm"
-      ],
-      "featured": false
-    },
-    {
       "id": "pomofox",
       "name": "Pomofox",
       "tagline": "一只狐狸头像的番茄钟",
