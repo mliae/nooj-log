@@ -1144,3 +1144,87 @@ button.chip { cursor: pointer; }
   .composer__bar { gap: 6px; }
   .composer__tag { flex-basis: 100%; }
 }
+
+/* ============================================================
+   音乐管理（#/music）
+   ============================================================ */
+.music-search__box { margin-top: 14px; display: flex; flex-direction: column; gap: 16px; }
+.music-search__grouptitle {
+  margin: 0 0 6px;
+  font-size: var(--fs-xs);
+  letter-spacing: .12em;
+  color: var(--muted);
+}
+.music-lib__head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 0 2px;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+.music-lib__bulk { margin: 6px 0 2px; align-items: center; }
+.music-lib { margin-top: 8px; display: flex; flex-direction: column; gap: 2px; max-height: 480px; overflow-y: auto; }
+
+.music-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: background var(--dur-fast) ease-out, border-color var(--dur-fast) ease-out;
+}
+.music-row:hover { background: var(--surface-2); }
+.music-row.is-inblog { border-color: var(--accent-soft); background: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+.music-row__check { flex: none; display: grid; place-items: center; }
+.music-row__check input { width: 15px; height: 15px; accent-color: var(--accent); }
+.music-row__cover {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+.music-row__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.music-row__main strong {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.music-row__main span {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.music-row__src { flex: none; font-size: var(--fs-xs); color: var(--muted); }
+.music-row__tags { flex: none; display: flex; gap: 4px; flex-wrap: wrap; max-width: 30%; }
+.music-row__badge {
+  flex: none;
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+@media (max-width: 720px) {
+  .music-row__tags, .music-row__src { display: none; }
+}

@@ -192,6 +192,7 @@ export function icon(name, size = 16) {
     note: "M2.5 3.5h11v7h-5l-3 2.6V10.5h-3z",
     pin: "M5.6 2.5h4.8l-.7 3.8 2.1 2.2H4.2l2.1-2.2zM8 8.5v5",
     lock: "M4 7V5a4 4 0 0 1 8 0v2M3 7h10v7H3z",
+    music: "M6 12.5V3.5l7-1.8v8.8M6 12.5a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM13 10.5a2 2 0 1 1-4 0 2 2 0 0 1 4 0z",
     logo: ""
   };
   const p = paths[name] || "";

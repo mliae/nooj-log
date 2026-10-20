@@ -20,6 +20,7 @@ import { renderEditor } from "./views/editor.js";
 import { renderNotes } from "./views/notes.js";
 import { renderProjects } from "./views/projects.js";
 import { renderMedia } from "./views/media.js";
+import { renderMusic } from "./views/music.js";
 import { renderSettings } from "./views/settings.js";
 
 const root = $("#root");
@@ -204,6 +205,7 @@ const NAV = [
   { id: "notes", href: "#/notes", label: "说说", icon: "note" },
   { id: "projects", href: "#/projects", label: "项目", icon: "grid" },
   { id: "media", href: "#/media", label: "媒体", icon: "image" },
+  { id: "music", href: "#/music", label: "音乐", icon: "music" },
   { id: "settings", href: "#/settings", label: "设置", icon: "gear" }
 ];
 
@@ -299,7 +301,7 @@ async function route() {
   if (!view) return;
 
   const section = parts[0];
-  if (!["posts", "notes", "projects", "media", "settings"].includes(section)) {
+  if (!["posts", "notes", "projects", "media", "music", "settings"].includes(section)) {
     location.hash = "#/posts";
     return;
   }
@@ -319,6 +321,7 @@ async function route() {
   if (section === "notes") return renderNotes(view, { ...ctx, setTopbar });
   if (section === "projects") return renderProjects(view, { ...ctx, setTopbar });
   if (section === "media") return renderMedia(view, { ...ctx, setTopbar });
+  if (section === "music") return renderMusic(view, { ...ctx, setTopbar });
   if (section === "settings") return renderSettings(view, { ...ctx, setTopbar });
 }
 
